@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import colorsys
 import math
 import socket
 import sys
@@ -23,6 +24,12 @@ BLACK = Color(0, 0, 0)
 
 strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA,
                           LED_INVERT, LED_BRIGHTNESS)
+# Create a spectrum of 255 values ranging from blue to red
+HSV_tuples = [((x*0.7+0.3)/256, 1.0, 1.0) for x in range(256)]
+RGB_tuples = map(lambda x: colorsys.hsv_to_rgb(*x), HSV_tuples)
+RGB_ntuples = []
+for r, g, b in RGB_tuples:
+    RGB_ntuples.append(Color(int(r * 255), int(g * 255), int(b * 255)))
 
 # End LED strip config
 
@@ -70,8 +77,9 @@ def get_color(aircraft):
         scaled_distance = 255 - int((aircraft["distance"] / 100000.0) * 255)
     else:
         scaled_distance = 255
-    print "distance %s -> %s" % (aircraft["distance"], scaled_distance)
-    return Color(0, 0, scaled_distance )
+    print "distance %s -> %s = %s" % (aircraft["distance"], scaled_distance, RGB_ntuples[scaled_distance])
+    return RGB_ntuples[255 - scaled_distance]
+    #return Color(0, 0, scaled_distance )
 
 
 def update_leds():
