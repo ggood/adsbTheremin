@@ -77,7 +77,7 @@ def get_color(aircraft):
         scaled_distance = 255 - int((aircraft["distance"] / 100000.0) * 255)
     else:
         scaled_distance = 255
-    print "distance %s -> %s = %s" % (aircraft["distance"], scaled_distance, RGB_ntuples[scaled_distance])
+    #print "distance %s -> %s = %s" % (aircraft["distance"], scaled_distance, RGB_ntuples[scaled_distance])
     return RGB_ntuples[255 - scaled_distance]
     #return Color(0, 0, scaled_distance )
 
@@ -91,6 +91,22 @@ def update_leds():
         strip.setPixelColor(led, get_color(aircraft))
     strip.show()
 
+
+def pulse_led(led):
+    old_color = strip.getPixelColor(led)
+    strip.setPixelColor(led, BLACK)
+    strip.show()
+    time.sleep(0.03)
+    strip.setPixelColor(led, old_color)
+    strip.show()
+
+def print_aircraft():
+    print ""
+    for id, a in all_aircraft.items():
+        print ("%d: id %s alt %5d lat %6.2f lon %6.2f dist %5.0f m "
+               "bearing %0.0f deg" %
+               (a["slot"], id, a["altitude"], a["lat"], a["lon"],
+                a["distance"], a["bearing"]))
 
 def process_line(line, mylat, mylon):
     global next_slot
@@ -123,6 +139,7 @@ def process_line(line, mylat, mylon):
                 else:
                     # Update existing
                     aircraft = all_aircraft[aircraft_id]
+                    pulse_led(aircraft["slot"])
                     aircraft.update({
                         "altitude": altitude,
                         "lat": lat,
@@ -133,10 +150,8 @@ def process_line(line, mylat, mylon):
                     })
                     
                 all_aircraft[aircraft_id] = aircraft
-                print (
-                    "seen %d slot %d mode-s id %s alt %5d lat %6.2f lon %6.2f dist %5.0f m "
-                    "bearing %0.0f deg" %
-                    (len(all_aircraft.keys()), aircraft["slot"], aircraft_id, altitude, lat, lon, d, b))
+                for id, aircraft in all_aircraft.items():
+                    print_aircraft()
                 # Purge things we haven't seen in 10 minutes
                 for id, aircraft in all_aircraft.items():
                     if aircraft["update"] < time.time() - 60:
