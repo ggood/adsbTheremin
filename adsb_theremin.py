@@ -22,6 +22,8 @@ LED_INVERT = False
 WHITE = Color(255, 255, 255)
 BLACK = Color(0, 0, 0)
 
+PURGE_TIME = 10
+
 strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA,
                           LED_INVERT, LED_BRIGHTNESS)
 # Create a spectrum of 255 values ranging from blue to red
@@ -155,7 +157,7 @@ def process_line(line, mylat, mylon):
                     print_aircraft()
                 # Purge things we haven't seen in 10 minutes
                 for id, aircraft in all_aircraft.items():
-                    if aircraft["update"] < time.time() - 60:
+                    if aircraft["update"] < time.time() - PURGE_TIME:
                         del all_aircraft[id]
                         print "Purged aircraft %s" % id
                         strip.setPixelColor(aircraft["slot"], BLACK)
