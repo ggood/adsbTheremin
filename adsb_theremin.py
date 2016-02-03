@@ -102,10 +102,10 @@ def pulse_led(led):
 
 def print_aircraft():
     print ""
-    for id, a in all_aircraft.items():
+    for a in sorted(all_aircraft.values(), key=lambda x: x["slot"]):
         print ("%d: id %s alt %5d lat %6.2f lon %6.2f dist %5.0f m "
                "bearing %0.0f deg" %
-               (a["slot"], id, a["altitude"], a["lat"], a["lon"],
+               (a["slot"], a["id"], a["altitude"], a["lat"], a["lon"],
                 a["distance"], a["bearing"]))
 
 def process_line(line, mylat, mylon):
@@ -128,6 +128,7 @@ def process_line(line, mylat, mylon):
                     slot = next_slot
                     next_slot = (next_slot + 1) % LED_COUNT
                     aircraft = {
+                        "id": aircraft_id,
                         "altitude": altitude,
                         "lat": lat,
                         "lon": lon,
