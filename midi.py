@@ -3,21 +3,39 @@
 import argparse
 import colorsys
 import math
+import random
 import socket
 import sys
 import time
+
+import pygame.midi
+
+pygame.midi.init()
+player = pygame.midi.Output(1)
+player.set_instrument(0)
 
 EARTH_RADIUS = 6371000
 
 PURGE_TIME = 10
 
-UPDATE_INTERVAL = 5.0  # seconds
-last_update = time.time()
+UPDATE_INTERVAL = 10.0  # seconds
+last_update = 0.0
 
 MAX_ALTITUDE = 40000
-MAX_DISTANCE = 200000
-MIDI_NOTES_COUNT = 127
+#MAX_DISTANCE = 200000
+MAX_DISTANCE = 70000 
 MIDI_VOLUME_MAX = 127
+MAX_VOICES = 8 
+
+MIDI_NOTE_PALETTE = range(40, 100)
+MIDI_NOTE_PALETTE = (
+48, 50, 53, 55, 58,
+60, 62, 65, 67, 70,
+72, 74, 77, 79, 82,
+84, 86, 89, 91, 94,
+106, 108, 111, 113, 116,
+)
+MAX_MIDI_NOTE = len(MIDI_NOTE_PALETTE)
 
 all_aircraft = {}  # Maps ADSB ID -> aircraft info
 next_slot = 0  # Which LED to use to show this aircraft
@@ -82,10 +100,22 @@ def print_sound():
         return
     last_update = time.time()
     print("%d aircraft" % len(all_aircraft))
+    for i in range(127):
+        player.note_off(i)
+    voices = 0
+    max_voices = random.randint(1, MAX_VOICES)
     for a in sorted(all_aircraft.values(), key=lambda x: x["slot"]):
-        note = a["altitude"] / MAX_ALTITUDE * MIDI_NOTES_COUNT
-        volume = (MAX_DISTANCE - a["distance"]) / MAX_DISTANCE * MIDI_VOLUME_MAX
-        print("Pitch %d, Volume %d" % (note, volume))
+        if a["distance"] > MAX_DISTANCE or a["altitude"] > MAX_ALTITUDE:
+            continue
+        if voices > max_voices:
+            print("There are %d voices max %d, bailing" % (voices, max_voices))
+            break
+        voices += 1
+        note_index = int(float(a["altitude"]) / MAX_ALTITUDE * MAX_MIDI_NOTE)
+        note = MIDI_NOTE_PALETTE[note_index]
+        volume = int((MAX_DISTANCE - a["distance"]) / MAX_DISTANCE * MIDI_VOLUME_MAX)
+        player.note_on(note, volume)
+        print("Alt %s note %d Dist %s Volume %d" % (a["altitude"], note, a["distance"], volume))
 
 LED_COUNT = 60
 def process_line(line, mylat, mylon):
@@ -99,8 +129,11 @@ def process_line(line, mylat, mylon):
             try:
                 aircraft_id = parts[4]
                 altitude = int(parts[11])
-                lat = float(parts[14])
-                lon = float(parts[15])
+                try:
+                    lat = float(parts[14])
+                    lon = float(parts[15])
+                except ValueError:
+                    return
                 d = distance(lat, lon, mylat, mylon)
                 b = bearing(mylat, mylon, lat, lon)
                 if aircraft_id not in all_aircraft:
@@ -139,7 +172,7 @@ def process_line(line, mylat, mylon):
                         del all_aircraft[id]
                         print "Purged aircraft %s" % id
             except:
-                pass
+                raise
                 #sys.stderr.write("Ignored %s" % line)
 
 def theremin(host, port, mylat, mylon):
