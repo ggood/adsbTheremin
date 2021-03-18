@@ -42,7 +42,6 @@ MIDI_NOTE_PALETTE = (
 MAX_MIDI_NOTE = len(MIDI_NOTE_PALETTE)
 
 all_aircraft = {}  # Maps ADSB ID -> aircraft info
-next_slot = 0  # Which LED to use to show this aircraft
 
 def distance(lat1, lon1, lat2, lon2):
     # Calcuate distance between two points on the earth
@@ -77,50 +76,6 @@ def bearing(lat1, lon1, lat2, lon2):
     bearing = (math.degrees(math.atan2(d_lon, d_phi)) + 360.0) % 360.0;
     return bearing
 
-def get_color(aircraft):
-    # Map aircraft position, etc to an LED color
-    # Brightness = 255 when 0 m away, 0 when 100km away
-    # Color = blue for now. Clamp at 100,000 meters
-    if aircraft["distance"] < 100000:
-        scaled_distance = 255 - int((aircraft["distance"] / 100000.0) * 255)
-    else:
-        scaled_distance = 255
-    #print "distance %s -> %s = %s" % (aircraft["distance"], scaled_distance, RGB_ntuples[scaled_distance])
-    return RGB_ntuples[255 - scaled_distance]
-    #return Color(0, 0, scaled_distance )
-
-
-def print_aircraft():
-    print ""
-    for a in sorted(all_aircraft.values(), key=lambda x: x["slot"]):
-        print ("%d: id %s alt %5d lat %6.2f lon %6.2f dist %5.0f m "
-               "bearing %0.0f deg" %
-               (a["slot"], a["id"], a["altitude"], a["lat"], a["lon"],
-                a["distance"], a["bearing"]))
-
-def print_sound():
-    global last_update
-    if time.time() < last_update + UPDATE_INTERVAL:
-        return
-    last_update = time.time()
-    print("%d aircraft" % len(all_aircraft))
-    for i in range(127):
-        player.note_off(i)
-    voices = 0
-    max_voices = random.randint(1, MAX_VOICES)
-    for a in sorted(all_aircraft.values(), key=lambda x: x["slot"]):
-        if a["distance"] > MAX_DISTANCE or a["altitude"] > MAX_ALTITUDE:
-            continue
-        if voices > max_voices:
-            print("There are %d voices max %d, bailing" % (voices, max_voices))
-            break
-        voices += 1
-        note_index = int(float(a["altitude"]) / MAX_ALTITUDE * MAX_MIDI_NOTE)
-        note = MIDI_NOTE_PALETTE[note_index]
-        volume = int((MAX_DISTANCE - a["distance"]) / MAX_DISTANCE * MIDI_VOLUME_MAX)
-        player.note_on(note, volume)
-        print("Alt %s note %d Dist %s Volume %d" % (a["altitude"], note, a["distance"], volume))
-
 def print_sound_distance():
     global last_update
     if time.time() < last_update + UPDATE_INTERVAL:
@@ -151,7 +106,6 @@ def map(x, in_min, in_max, out_min, out_max):
 
 LED_COUNT = 60
 def process_line(line, mylat, mylon):
-    global next_slot
     global all_aircraft
 
     parts = line.split(",")
@@ -170,8 +124,6 @@ def process_line(line, mylat, mylon):
                 b = bearing(mylat, mylon, lat, lon)
                 if aircraft_id not in all_aircraft:
                     # New plane
-                    slot = next_slot
-                    next_slot = (next_slot + 1) % LED_COUNT
                     aircraft = {
                         "id": aircraft_id,
                         "altitude": altitude,
@@ -180,7 +132,6 @@ def process_line(line, mylat, mylon):
                         "distance": d,
                         "bearing": b,
                         "update": time.time(),
-                        "slot": slot,
                     }
                 else:
                     # Update existing
@@ -197,8 +148,6 @@ def process_line(line, mylat, mylon):
                 all_aircraft[aircraft_id] = aircraft
                 # Adjust update rate based on number of aircraft
                 for id, aircraft in all_aircraft.items():
-                    #print_aircraft()
-                    #print_sound()
                     print_sound_distance()
                 # Purge things we haven't seen in 10 minutes
                 for id, aircraft in all_aircraft.items():
