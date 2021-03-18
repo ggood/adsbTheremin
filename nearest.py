@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import argparse
-import colorsys
 import math
 import random
 import socket
@@ -18,13 +17,12 @@ EARTH_RADIUS = 6371000
 
 PURGE_TIME = 10
 
-UPDATE_INTERVAL = 1.0  # seconds
+UPDATE_INTERVAL = 30.0  # seconds
 last_update = 0.0
 
 MAX_ALTITUDE = 40000
-#MAX_DISTANCE = 200000
 MAX_DISTANCE = 70000 
-MIDI_VOLUME_MAX = 127
+MIDI_VOLUME_MAX = 100
 MAX_VOICES = 8
 
 MIDI_NOTE_PALETTE = (
@@ -37,7 +35,6 @@ MIDI_NOTE_PALETTE = (
 106, 108, 111, 113, 116,
 118, 120, 123
 )
-#MIDI_NOTE_PALETTE = MIDI_NOTE_PALETTE[::-1]  # Flip!
 
 MAX_MIDI_NOTE = len(MIDI_NOTE_PALETTE)
 
@@ -66,7 +63,8 @@ def bearing(lat1, lon1, lat2, lon2):
 
     d_lon = long2_rad - long1_rad
 
-    d_phi = math.log(math.tan(lat_rad/2.0+math.pi/4.0)/math.tan(lat1_rad/2.0+math.pi/4.0))
+    d_phi = math.log(
+        math.tan(lat_rad/2.0+math.pi/4.0)/math.tan(lat1_rad/2.0+math.pi/4.0))
     if abs(d_lon) > math.pi:
          if d_lon > 0.0:
              d_lon = -(2.0 * math.pi - dLong)
