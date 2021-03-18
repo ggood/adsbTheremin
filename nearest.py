@@ -25,9 +25,8 @@ MAX_ALTITUDE = 40000
 #MAX_DISTANCE = 200000
 MAX_DISTANCE = 70000 
 MIDI_VOLUME_MAX = 127
-MAX_VOICES =  8
+MAX_VOICES = 8
 
-MIDI_NOTE_PALETTE = range(40, 100)
 MIDI_NOTE_PALETTE = (
 24,
 36,
@@ -36,9 +35,10 @@ MIDI_NOTE_PALETTE = (
 72, 74, 77, 79, 82,
 84, 86, 89, 91, 94,
 106, 108, 111, 113, 116,
-118,
-130
+118, 120, 123
 )
+#MIDI_NOTE_PALETTE = MIDI_NOTE_PALETTE[::-1]  # Flip!
+
 MAX_MIDI_NOTE = len(MIDI_NOTE_PALETTE)
 
 all_aircraft = {}  # Maps ADSB ID -> aircraft info
@@ -144,6 +144,11 @@ def print_sound_distance():
         player.note_on(note, volume)
         print("Alt %s note %d Dist %s Volume %d" % (a["altitude"], note, a["distance"], volume))
 
+
+def map(x, in_min, in_max, out_min, out_max):
+    return int((x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min)
+
+
 LED_COUNT = 60
 def process_line(line, mylat, mylon):
     global next_slot
@@ -190,6 +195,7 @@ def process_line(line, mylat, mylon):
                     })
                     
                 all_aircraft[aircraft_id] = aircraft
+                # Adjust update rate based on number of aircraft
                 for id, aircraft in all_aircraft.items():
                     #print_aircraft()
                     #print_sound()
