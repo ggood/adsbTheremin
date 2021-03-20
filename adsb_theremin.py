@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Older version of code - keeping in git repo because this has
+# code to drive a strip of Neopixels. Someday I'll re-incorporate
+# this into the code.
+
 import argparse
 import colorsys
 import math
