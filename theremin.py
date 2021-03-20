@@ -50,7 +50,7 @@ def make_sound(aircraft, mylat, mylon):
 def theremin(host, port, mylat, mylon):
     last_midi_update = 0.0
     map = aircraft_map.AircraftMap(mylat, mylon)
-    print "Connect to %s:%d" % (host, port)
+    print("Connect to %s:%d" % (host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     fp = sock.makefile()

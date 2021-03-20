@@ -83,9 +83,7 @@ def get_color(aircraft):
         scaled_distance = 255 - int((aircraft["distance"] / 100000.0) * 255)
     else:
         scaled_distance = 255
-    #print "distance %s -> %s = %s" % (aircraft["distance"], scaled_distance, RGB_ntuples[scaled_distance])
     return RGB_ntuples[255 - scaled_distance]
-    #return Color(0, 0, scaled_distance )
 
 
 def update_leds():
@@ -107,9 +105,9 @@ def pulse_led(led):
     strip.show()
 
 def print_aircraft():
-    print ""
+    print("")
     for a in sorted(all_aircraft.values(), key=lambda x: x["slot"]):
-        print ("%d: id %s alt %5d lat %6.2f lon %6.2f dist %5.0f m "
+        print("%d: id %s alt %5d lat %6.2f lon %6.2f dist %5.0f m "
                "bearing %0.0f deg" %
                (a["slot"], a["id"], a["altitude"], a["lat"], a["lon"],
                 a["distance"], a["bearing"]))
@@ -163,7 +161,7 @@ def process_line(line, mylat, mylon):
                 for id, aircraft in all_aircraft.items():
                     if aircraft["update"] < time.time() - PURGE_TIME:
                         del all_aircraft[id]
-                        print "Purged aircraft %s" % id
+                        print("Purged aircraft %s" % id)
                         strip.setPixelColor(aircraft["slot"], BLACK)
                         strip.show()
                 update_leds()
@@ -172,7 +170,7 @@ def process_line(line, mylat, mylon):
                 raise
 
 def theremin(host, port, mylat, mylon):
-    print "Connect to %s:%d" % (host, port)
+    print("Connect to %s:%d" % (host, port))
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))

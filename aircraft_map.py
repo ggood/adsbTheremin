@@ -110,7 +110,7 @@ class AircraftMap(object):
         for id, aircraft in all_aircraft.items():
             if aircraft._update < time.time() - PURGE_TIME:
                 del self._aircraft[id]
-                print "Purged aircraft %s" % id 
+                print("Purged aircraft %s" % id)
 
     def print_summary(self):
         print("%d aircraft" % len(self._aircraft))
