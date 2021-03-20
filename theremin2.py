@@ -7,12 +7,47 @@ import time
 
 import aircraft_map
 
-UPDATE_INTERVAL = 5
-def make_sound(aircraft):
-    pass
+import pygame.midi
+
+pygame.midi.init()
+player = pygame.midi.Output(1)
+player.set_instrument(0)
+
+UPDATE_INTERVAL = 30.0  # seconds
+MAX_VOICES = 8
+MAX_ALTITUDE = 40000
+MAX_DISTANCE = 70000
+MIDI_VOLUME_MAX = 100
+
+MIDI_NOTE_PALETTE = (
+24,
+36,
+48, 50, 53, 55, 58,
+60, 62, 65, 67, 70,
+72, 74, 77, 79, 82,
+84, 86, 89, 91, 94,
+106, 108, 111, 113, 116,
+118, 120, 123
+)
+
+MAX_MIDI_NOTE = len(MIDI_NOTE_PALETTE)
+
+def make_sound(aircraft, mylat, mylon):
+    for i in range(127):
+        player.note_off(i)
+    for a in aircraft:
+        if a.distance_to(mylat, mylon) > MAX_DISTANCE or a.altitude > MAX_ALTITUDE:
+            continue
+        note_index = int(float(a.altitude) / MAX_ALTITUDE * MAX_MIDI_NOTE)
+        note = MIDI_NOTE_PALETTE[note_index]
+        volume = int((MAX_DISTANCE - a.distance_to(mylat, mylon)) / MAX_DISTANCE * MIDI_VOLUME_MAX)
+        player.note_on(note, volume)
+        print("Alt %s note %d Volume %d" % (a.altitude, note, volume))
+
+
 
 def theremin(host, port, mylat, mylon):
-    last_midi_update = time.time()
+    last_midi_update = 0.0
     map = aircraft_map.AircraftMap(mylat, mylon)
     print "Connect to %s:%d" % (host, port)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -23,7 +58,7 @@ def theremin(host, port, mylat, mylon):
             line = fp.readline()
             map.update(line)
             if time.time() - last_midi_update > UPDATE_INTERVAL:
-                make_sound(map.closest(3))
+                make_sound(map.closest(3), mylat, mylon)
                 last_midi_update = time.time()
     finally:
         sock.close()
