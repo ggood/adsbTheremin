@@ -99,10 +99,7 @@ class AircraftMap(object):
     You can feed all lines returned by the ADSB receiver into this
     code, and it will consume all airborne position messages and update
     the list of aircraft.
-    You should periodically call the purge() method, which will discard
-    any aircraft that have not been observed recently. You can set
-    the retention time by passing the purge_age argument to the class
-    constructor.
+    Aircraft not heard from in purge_age seconds will be discarded.
     """
     def __init__(self, latitude, longitude, purge_age=DEFAULT_PURGE_TIME):
         """
