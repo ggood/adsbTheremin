@@ -1,11 +1,16 @@
+# aircraft_map: maintains a list of aircraft "seen" by an ADSB
+# receiver.
+
 import math
 import time
 
-DEFAULT_PURGE_TIME = 10  # Forget planes not heard from in this many seconds
+DEFAULT_PURGE_TIME = 120  # Forget planes not heard from in this many seconds
+DEFAULT_PURGE_INTERVAL = 1  # How often to purge stale aircraft
 EARTH_RADIUS = 6371000  # Earth's radius in meters
 
 
 class Aircraft(object):
+    """Represents a single aircraft"""
     def __init__(self, id):
         self._id = id
         self._altitude = 0
@@ -37,11 +42,19 @@ class Aircraft(object):
         return self.__str__()
 
     def update(self, altitude, latitude, longitude):
+        """Update an aircraft's altitude, latitude, and longitude"""
         self._altitude = altitude
         self._latitude = latitude
         self._longitude = longitude
+        self._update = time.time()
 
     def distance_to(self, lat, lon):
+        """
+        Compute the distance from the aircraft to the point given by
+        lat and lon. This does not consider the aircraft's altitude. In
+        other words, this computes the distance to the projection
+        of the aircraft on the ground.
+        """
         d_lat = math.radians(lat - self._latitude)
         d_lon = math.radians(lon - self._longitude)
         lat1_rad = math.radians(self._latitude)
@@ -55,6 +68,10 @@ class Aircraft(object):
         return d
 
     def bearing_from(self, lat, lon):
+        """
+        Compute the bearing, in degrees, of the aircraft as seen from
+        the position given by lat and lon.
+        """
         lat1_rad = math.radians(self._latitude)
         long1_rad = math.radians(self._longitude)
         lat2_rad = math.radians(lat)
@@ -77,12 +94,32 @@ class Aircraft(object):
 
 
 class AircraftMap(object):
+    """
+    This class keeps track of aircraft heard by an ADSB receiver.
+    You can feed all lines returned by the ADSB receiver into this
+    code, and it will consume all airborne position messages and update
+    the list of aircraft.
+    You should periodically call the purge() method, which will discard
+    any aircraft that have not been observed recently. You can set
+    the retention time by passing the purge_age argument to the class
+    constructor.
+    """
     def __init__(self, latitude, longitude, purge_age=DEFAULT_PURGE_TIME):
+        """
+        Arguments:
+        latitude: the latitude, in fractional degrees, of the observer.
+        longitude: the longitude, in fractional degrees, of the observer.
+        purge_age: the time, in seconds, after which aircraft will be
+                   discarded if no position updates have been seen.
+        """
         self._aircraft = {}  # ADSB ID -> aircraft
         self._latitude = latitude
         self._longitude = longitude
+        self._purge_age = purge_age
+        self._last_purge = time.time()
 
     def update(self, line):
+        self._purge()
         parts = line.split(",")
         if parts and (parts[0] == "MSG"):
             if parts[1] == "3":
@@ -106,11 +143,16 @@ class AircraftMap(object):
                     raise
 
 
-    def purge(self):
-        for id, aircraft in all_aircraft.items():
-            if aircraft._update < time.time() - PURGE_TIME:
+    def _purge(self):
+        if time.time() - self._last_purge < DEFAULT_PURGE_INTERVAL:
+            return
+        n = 0
+        for id, aircraft in self._aircraft.items():
+            if aircraft._update < time.time() - self._purge_age:
                 del self._aircraft[id]
-                print("Purged aircraft %s" % id)
+                n += 1
+        print("purged %d aircraft, %d remaining" % (n, len(self._aircraft)))
+        self._last_purge = time.time()
 
     def print_summary(self):
         print("%d aircraft" % len(self._aircraft))
