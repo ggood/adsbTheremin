@@ -7,7 +7,7 @@ http://www.airnavsystems.com/forum/index.php?topic=2896.0
 
 Some recent sonifications using this code:
 
-[Long Airport Pads[(https://soundcloud.com/gordongood/longairportpads)
+[Long Airport Pads](https://soundcloud.com/gordongood/longairportpads)
 
 Gordon Good
 velo27@yahoo.com
