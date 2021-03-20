@@ -1,0 +1,12 @@
+Get nearest.py running with no more LED code
+
+Abstract out the code that reads input data so it can read a dump
+of data and play it back at various speeds (does it have
+timestamp data? It needs to). If not just assume equal time
+between messages. Then be able to scale up/down the time.
+Idea is to be able to update the data structure of known
+aircraft muchg more frequently but the MIDI note update still
+runs at a slower speed like once per second. Although maybe
+make the update dependent on environmental factors like number of
+planes, time of day, etc.
+
