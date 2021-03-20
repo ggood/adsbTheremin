@@ -5,8 +5,9 @@ Info about output format of dump1090:
 
 http://www.airnavsystems.com/forum/index.php?topic=2896.0
 
-Goal 1:
-For each packet received, print lat, lon, altitude, distance, and bearing
+Some recent sonifications using this code:
+
+[Long Airport Pads[(https://soundcloud.com/gordongood/longairportpads)
 
 Gordon Good
 velo27@yahoo.com
