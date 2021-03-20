@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import datetime
 import socket
 import sys
 import time
@@ -33,6 +34,7 @@ MIDI_NOTE_PALETTE = (
 MAX_MIDI_NOTE = len(MIDI_NOTE_PALETTE)
 
 def make_sound(aircraft, mylat, mylon):
+    print(datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
     for i in range(127):
         player.note_off(i)
     for a in aircraft:
@@ -44,22 +46,32 @@ def make_sound(aircraft, mylat, mylon):
         player.note_on(note, volume)
         print("Id %s alt %s note %d Volume %d dist %f" %
             (a.id, a.altitude, note, volume, a.distance_to(mylat, mylon)))
+    print("")
 
 
 
 def theremin(host, port, mylat, mylon):
-    last_midi_update = 0.0
     map = aircraft_map.AircraftMap(mylat, mylon)
     print("Connect to %s:%d" % (host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     fp = sock.makefile()
     try:
+        # Prime the aircraft list - just get updates for a little while
+        print("Priming aircraft map...")
+        prime_start = time.time()
+        while True:
+            if time.time() - prime_start > 3.0:
+                break
+            line = fp.readline()
+            map.update(line)
+        print("Done.")
+        last_midi_update = 0.0
         while True:
             line = fp.readline()
             map.update(line)
             if time.time() - last_midi_update > UPDATE_INTERVAL:
-                make_sound(map.closest(3), mylat, mylon)
+                make_sound(map.closest(8), mylat, mylon)
                 last_midi_update = time.time()
     finally:
         sock.close()

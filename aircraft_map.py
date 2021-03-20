@@ -136,7 +136,7 @@ class AircraftMap(object):
                             self._aircraft[aircraft_id] = aircraft
                         aircraft.update(altitude, lat, lon)
                     except ValueError:
-                        print("oops: %s" % line)
+                        # Some position messages omit the lat/lon. Ignore.
                         return
                 except:
                     print("big oops: %s" % line)
@@ -151,7 +151,7 @@ class AircraftMap(object):
             if aircraft._update < time.time() - self._purge_age:
                 del self._aircraft[id]
                 n += 1
-        print("purged %d aircraft, %d remaining" % (n, len(self._aircraft)))
+        #print("purged %d aircraft, %d remaining" % (n, len(self._aircraft)))
         self._last_purge = time.time()
 
     def print_summary(self):
