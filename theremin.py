@@ -44,7 +44,7 @@ def make_sound(aircraft, mylat, mylon):
         note = MIDI_NOTE_PALETTE[note_index]
         volume = int((MAX_DISTANCE - a.distance_to(mylat, mylon)) / MAX_DISTANCE * MIDI_VOLUME_MAX)
         player.note_on(note, volume)
-        print("Id %s alt %s note %d Volume %d dist %f" %
+        print("Id %s alt %s MIDI note %d MIDI vol %d dist %d m" %
             (a.id, a.altitude, note, volume, a.distance_to(mylat, mylon)))
     print("")
 
