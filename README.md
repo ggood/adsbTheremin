@@ -26,7 +26,7 @@ stations that, in a crowdsourced fashion, feed data to a web site
 that lets anyone see which aircraft are overhead.
 
 You'll also need a music synthesizer - I use Ableton Live, but any
-VST plugin host should work. In fsct, the really creative part of
+VST plugin host should work. In fact, the really creative part of
 this is deciding what to do with the aircraft data. I've chosen
 to make some very ambient tracks, but there's no reason this raw
 data coudn't be turned into speedmetal. I hope someone will do
