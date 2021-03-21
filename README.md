@@ -10,6 +10,10 @@ your hands in proximity to an antenna on the instrument.
 What if that antenna was your house, and intead of human
 hands, our instrument was played by airplanes flying overhead?
 
+This code listens to ADSB [https://www.faa.gov/nextgen/programs/adsb/]
+trasmissions from aircraft, and turns those trasmission into
+music.
+
 Info about output format of dump1090:
 
 http://www.airnavsystems.com/forum/index.php?topic=2896.0
