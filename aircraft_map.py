@@ -156,6 +156,9 @@ class AircraftMap(object):
 
 
     def closest(self, count):
+        """
+        Return the closest [count] aircraft.
+        """
         # I know there's a one-line list comprehension that will do
         # this, but I suck.
         dist_map = {}  # distance -> aircraft
