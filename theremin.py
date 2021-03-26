@@ -11,8 +11,8 @@ import aircraft_map
 import pygame.midi
 
 pygame.midi.init()
-player = pygame.midi.Output(1)
-player.set_instrument(0)
+#player = pygame.midi.Output(1)
+#player.set_instrument(0)
 
 UPDATE_INTERVAL = 30.0  # seconds
 MAX_VOICES = 8
@@ -76,6 +76,76 @@ def theremin(args):
     finally:
         sock.close()
 
+class ADSBTheremin(object):
+    def __init__(self, args):
+        self._host = args.host
+        self._port = args.port
+        self._mylat = args.lat
+        self._mylon = args.lon
+        self._midi_channels = range(1, args.midi_channels + 1)
+        self._num_midi_channels = len(self._midi_channels)
+        self._player = None
+        self._map = aircraft_map.AircraftMap(args.lat, args.lon)
+
+    def init(self):
+        if not pygame.midi.get_init():
+            pygame.midi.init()
+        self._player = pygame.midi.Output(1)  # TODO(ggood) hardcoded device
+        i = 0
+        for channel in self._midi_channels:
+            # Set instrument <n> to MIDI channel <n+1>
+            self._player.set_instrument(i, channel)
+            i += 1
+
+    def make_sound(self):
+        print(datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
+
+        # All notes off
+        for midi_channel in self._midi_channels:
+            for i in range(127):
+                self._player.note_off(i, channel=channel)
+
+        aircraft = self._map.closest(8)  # TODO(ggood) hardcoded 8
+        midi_channel_index = 0
+        for a in aircraft:
+            if a.distance_to(mylat, mylon) > MAX_DISTANCE or a.altitude > MAX_ALTITUDE:
+                continue
+            note_index = int(float(a.altitude) / MAX_ALTITUDE * MAX_MIDI_NOTE)
+            note = MIDI_NOTE_PALETTE[note_index]
+            volume = int((MAX_DISTANCE - a.distance_to(mylat, mylon)) / MAX_DISTANCE * MIDI_VOLUME_MAX)
+            channel = self._midi_channels[midi_channel_offset]
+            self._player.note_on(note, volume, channel)
+            print("Id %s alt %s MIDI note %d MIDI vol MIDI chan %s %d dist %d m" %
+                (a.id, a.altitude, note, volume, channel, a.distance_to(mylat, mylon)))
+            midi_channel_offset = (midi_channel_offset + 1) % self._num_midi_channels
+        print("")
+
+
+    def play(self):
+        print("Connect to %s:%d" % (self._host, self._port))
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((self._host, self._port))
+        fp = sock.makefile()
+        try:
+            # Prime the aircraft list - just get updates for a little while
+            print("Priming aircraft map...")
+            prime_start = time.time()
+            while True:
+                if time.time() - prime_start > 3.0:
+                    break
+                line = fp.readline()
+                map.update(line)
+            print("Done.")
+            last_midi_update = 0.0
+            while True:
+                line = fp.readline()
+                map.update(line)
+                if time.time() - last_midi_update > UPDATE_INTERVAL:
+                    self.make_sound()
+                    last_midi_update = time.time()
+        finally:
+            sock.close()
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -95,7 +165,10 @@ def main():
 
     args = parser.parse_args()
 
-    theremin(args)
+    adsb_theremin = ADSBTheremin(args)
+    adsb_theremin.init()
+    adsb_theremin.play()
+    #theremin(args)
 
 
 if __name__ == "__main__":
