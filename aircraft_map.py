@@ -139,7 +139,6 @@ class AircraftMap(object):
                     print("big oops: %s" % line)
                     raise
 
-
     def _purge(self):
         if time.time() - self._last_purge < DEFAULT_PURGE_INTERVAL:
             return
@@ -154,7 +153,6 @@ class AircraftMap(object):
     def print_summary(self):
         print("%d aircraft" % len(self._aircraft))
 
-
     def closest(self, count):
         """
         Return the closest [count] aircraft.
@@ -168,3 +166,9 @@ class AircraftMap(object):
         closest = sorted(dist_map.keys())[:count]
         ret = [dist_map[d] for d in closest]
         return ret
+
+    def count(self):
+        """
+        Return the count of aircraft in the map.
+        """
+        return len(self._aircraft)

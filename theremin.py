@@ -108,16 +108,21 @@ class ADSBTheremin(object):
         aircraft = self._map.closest(8)  # TODO(ggood) hardcoded 8
         midi_channel_index = 0
         for a in aircraft:
-            if a.distance_to(mylat, mylon) > MAX_DISTANCE or a.altitude > MAX_ALTITUDE:
+            if (a.distance_to(mylat, mylon) > MAX_DISTANCE or
+                a.altitude > MAX_ALTITUDE):
                 continue
             note_index = int(float(a.altitude) / MAX_ALTITUDE * MAX_MIDI_NOTE)
             note = MIDI_NOTE_PALETTE[note_index]
-            volume = int((MAX_DISTANCE - a.distance_to(mylat, mylon)) / MAX_DISTANCE * MIDI_VOLUME_MAX)
+            volume = int((MAX_DISTANCE - a.distance_to(mylat, mylon)) /
+                          MAX_DISTANCE * MIDI_VOLUME_MAX)
             channel = self._midi_channels[midi_channel_offset]
             self._player.note_on(note, volume, channel)
-            print("Id %s alt %s MIDI note %d MIDI vol MIDI chan %s %d dist %d m" %
-                (a.id, a.altitude, note, volume, channel, a.distance_to(mylat, mylon)))
-            midi_channel_offset = (midi_channel_offset + 1) % self._num_midi_channels
+            print("Id %s alt %s MIDI note %d MIDI vol MIDI chan %s "
+                  "%d dist %d m" %
+                  (a.id, a.altitude, note, volume, channel,
+                   a.distance_to(mylat, mylon)))
+            midi_channel_offset = (midi_channel_offset + 1) %
+                                   self._num_midi_channels
         print("")
 
 
@@ -135,7 +140,7 @@ class ADSBTheremin(object):
                     break
                 line = fp.readline()
                 map.update(line)
-            print("Done.")
+            print("Done. Seeing %d aircraft" % map.count())
             last_midi_update = 0.0
             while True:
                 line = fp.readline()
