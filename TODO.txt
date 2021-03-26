@@ -15,6 +15,7 @@ same channel once it is sounding. This will probably require
 converting the theremin to a class that can keep track of
 state.
 See https://stackoverflow.com/questions/29805082/pygame-midi-multi-instrument
+Note that channel numbers in pygame are 0-based
 
 Add support for mapping bearing data to MIDI controller 10
 (pan) control. To send MIDI CC messages with pygame, need to

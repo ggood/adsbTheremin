@@ -76,13 +76,40 @@ def theremin(args):
     finally:
         sock.close()
 
+
+def map_int(x, in_min, in_max, out_min, out_max):
+    """
+    Map input from one range to another.
+    """
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+
+
+def set_pan(pan, channel):
+    """
+    Set the panning on a MIDI channel. 0 = hard left, 127 = hard right.
+    """
+    status = 0xb0 | channel
+    player.write_short(status, 0x0a, pan)
+
+
+def map_bearing_to_pan(bearing):
+    """
+    Convert a plane's bearing to a MIDI pan controller value.
+    """
+    bearing = (bearing + 270) % 360
+    if bearing < 180:
+        return map_int(bearing, 0, 180, 127, 0)
+    else:
+        return map_int(bearing, 180, 360, 0, 127)
+
+
 class ADSBTheremin(object):
     def __init__(self, args):
         self._host = args.host
         self._port = args.port
         self._mylat = args.lat
         self._mylon = args.lon
-        self._midi_channels = range(1, args.midi_channels + 1)
+        self._midi_channels = range(args.midi_channels)  # 0-based
         self._num_midi_channels = len(self._midi_channels)
         self._player = None
         self._map = aircraft_map.AircraftMap(args.lat, args.lon)
@@ -93,7 +120,7 @@ class ADSBTheremin(object):
         self._player = pygame.midi.Output(1)  # TODO(ggood) hardcoded device
         i = 0
         for channel in self._midi_channels:
-            # Set instrument <n> to MIDI channel <n+1>
+            # Set instrument <n> to MIDI channel <n>
             self._player.set_instrument(i, channel)
             i += 1
 
