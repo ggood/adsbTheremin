@@ -11,7 +11,8 @@ import aircraft_map
 import pygame.midi
 
 pygame.midi.init()
-players = []  # One for each MIDI channel
+player = pygame.midi.Output(1)
+player.set_instrument(0)
 
 UPDATE_INTERVAL = 30.0  # seconds
 MAX_VOICES = 8
@@ -32,35 +33,28 @@ MIDI_NOTE_PALETTE = (
 
 MAX_MIDI_NOTE = len(MIDI_NOTE_PALETTE)
 
-def init_players(args):
-    global players
-    for i in range(args.midi_channels):
-        player = pygame.midi.Output(i + 1)
-        player.set_instrument(0)
-        players.append(player)
-
 def make_sound(aircraft, mylat, mylon):
     print(datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
     for i in range(127):
-        players[0].note_off(i)  # TODO(ggood) temporary hack using 0th
+        player.note_off(i)
     for a in aircraft:
         if a.distance_to(mylat, mylon) > MAX_DISTANCE or a.altitude > MAX_ALTITUDE:
             continue
         note_index = int(float(a.altitude) / MAX_ALTITUDE * MAX_MIDI_NOTE)
         note = MIDI_NOTE_PALETTE[note_index]
         volume = int((MAX_DISTANCE - a.distance_to(mylat, mylon)) / MAX_DISTANCE * MIDI_VOLUME_MAX)
-        players[0].note_on(note, volume)
+        player.note_on(note, volume)
         print("Id %s alt %s MIDI note %d MIDI vol %d dist %d m" %
             (a.id, a.altitude, note, volume, a.distance_to(mylat, mylon)))
     print("")
 
 
 
-def theremin(args):
-    map = aircraft_map.AircraftMap(args.lat, args.lon)
-    print("Connect to %s:%d" % (args.host, args.port))
+def theremin(host, port, mylat, mylon):
+    map = aircraft_map.AircraftMap(mylat, mylon)
+    print("Connect to %s:%d" % (host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((args.host, args.port))
+    sock.connect((host, port))
     fp = sock.makefile()
     try:
         # Prime the aircraft list - just get updates for a little while
@@ -77,7 +71,7 @@ def theremin(args):
             line = fp.readline()
             map.update(line)
             if time.time() - last_midi_update > UPDATE_INTERVAL:
-                make_sound(map.closest(8), args.lat, args.lon)
+                make_sound(map.closest(8), mylat, mylon)
                 last_midi_update = time.time()
     finally:
         sock.close()
@@ -95,14 +89,10 @@ def main():
                         required=True)
     parser.add_argument("--lon", type=float, help="Your longitude",
                         required=True)
-    parser.add_argument("--midi-channels", type=int,
-                        help="Number of MIDI channels to use",
-                        default=1)
 
     args = parser.parse_args()
 
-    init_players(args)
-    theremin(args)
+    theremin(args.host, args.port, args.lat, args.lon)
 
 
 if __name__ == "__main__":
