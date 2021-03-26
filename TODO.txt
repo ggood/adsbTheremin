@@ -1,4 +1,4 @@
-Get nearest.py running with no more LED code
+Get nearest.py running with no more LED code DONE
 
 Abstract out the code that reads input data so it can read a dump
 of data and play it back at various speeds (does it have
@@ -8,5 +8,16 @@ Idea is to be able to update the data structure of known
 aircraft muchg more frequently but the MIDI note update still
 runs at a slower speed like once per second. Although maybe
 make the update dependent on environmental factors like number of
-planes, time of day, etc.
+planes, time of day, etc. DONE
+
+Add support for multiple MIDI channels. Keep an aircraft on the
+same channel once it is sounding. This will probably require
+converting the theremin to a class that can keep track of
+state.
+See https://stackoverflow.com/questions/29805082/pygame-midi-multi-instrument
+
+Add support for mapping bearing data to MIDI controller 10
+(pan) control. To send MIDI CC messages with pygame, need to
+call 0xB0, 0x0A, <value> where <value> ranges from 0-127
+decimal.
 

@@ -50,11 +50,11 @@ def make_sound(aircraft, mylat, mylon):
 
 
 
-def theremin(host, port, mylat, mylon):
-    map = aircraft_map.AircraftMap(mylat, mylon)
-    print("Connect to %s:%d" % (host, port))
+def theremin(args):
+    map = aircraft_map.AircraftMap(args.lat, args.lon)
+    print("Connect to %s:%d" % (args.host, args.port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((host, port))
+    sock.connect((args.host, args.port))
     fp = sock.makefile()
     try:
         # Prime the aircraft list - just get updates for a little while
@@ -71,7 +71,7 @@ def theremin(host, port, mylat, mylon):
             line = fp.readline()
             map.update(line)
             if time.time() - last_midi_update > UPDATE_INTERVAL:
-                make_sound(map.closest(8), mylat, mylon)
+                make_sound(map.closest(8), args.lat, args.lon)
                 last_midi_update = time.time()
     finally:
         sock.close()
@@ -89,10 +89,13 @@ def main():
                         required=True)
     parser.add_argument("--lon", type=float, help="Your longitude",
                         required=True)
+    parser.add_argument("--midi-channels", type=int,
+                         help="Number of MIDI channels to use",
+                         default=1)
 
     args = parser.parse_args()
 
-    theremin(args.host, args.port, args.lat, args.lon)
+    theremin(args)
 
 
 if __name__ == "__main__":
