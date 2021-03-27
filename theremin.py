@@ -10,7 +10,7 @@ import aircraft_map
 
 import pygame.midi
 
-UPDATE_INTERVAL = 10.0  # seconds
+UPDATE_INTERVAL = 30.0  # seconds
 MAX_ALTITUDE = 40000
 MAX_DISTANCE = 70000
 MIDI_VOLUME_MAX = 100
@@ -70,7 +70,19 @@ class ADSBTheremin(object):
     def init(self):
         if not pygame.midi.get_init():
             pygame.midi.init()
-        self._player = pygame.midi.Output(1)  # TODO(ggood) hardcoded device
+        id = 0
+        while True:
+            devinf = pygame.midi.get_device_info(id)
+            if devinf is not None:
+                (interf, name, input, output, opened) = devinf
+                if "IAC" in name and output == 1:
+                    print("Using device id %d" % id)
+                    break
+            else:
+                sys.stderr.write("Can't find IAC output\n")
+                sys.exit(1)
+            id += 1
+        self._player = pygame.midi.Output(id)  # TODO(ggood) hardcoded device
         i = 0
         for channel in self._midi_channels:
             # Set instrument <n> to MIDI channel <n>
@@ -161,9 +173,6 @@ def main():
 
     args = parser.parse_args()
 
-    print("Delaying 10 seconds...")
-    time.sleep(10)
-    print("Done")
     adsb_theremin = ADSBTheremin(args)
     adsb_theremin.init()
     adsb_theremin.play()
