@@ -10,7 +10,7 @@ import aircraft_map
 
 import pygame.midi
 
-UPDATE_INTERVAL = 30.0  # seconds
+UPDATE_INTERVAL = 10.0  # seconds
 MAX_ALTITUDE = 40000
 MAX_DISTANCE = 70000
 MIDI_VOLUME_MAX = 100
@@ -36,7 +36,7 @@ def map_int(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 
 
-def set_pan(pan, channel):
+def set_pan(player, pan, channel):
     """
     Set the panning on a MIDI channel. 0 = hard left, 127 = hard right.
     """
@@ -48,7 +48,7 @@ def map_bearing_to_pan(bearing):
     """
     Convert a plane's bearing to a MIDI pan controller value.
     """
-    bearing = (bearing + 270) % 360
+    bearing = (int(bearing) + 270) % 360
     if bearing < 180:
         return map_int(bearing, 0, 180, 127, 0)
     else:
@@ -77,14 +77,17 @@ class ADSBTheremin(object):
             self._player.set_instrument(i, channel)
             i += 1
 
-    def make_sound(self):
-        print(datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
-
-        # All notes off
+    def all_notes_off(self):
         for midi_channel in self._midi_channels:
             for i in range(127):
                 self._player.note_off(i, channel=midi_channel)
 
+    def make_sound(self):
+        print("%s: %d aircraft" %
+              (datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+               self._map.count()))
+
+        self.all_notes_off()
         aircraft = self._map.closest(self._polyphony)
         midi_channel = 0
         for a in aircraft:
@@ -96,6 +99,10 @@ class ADSBTheremin(object):
             volume = int((MAX_DISTANCE -
                           a.distance_to(self._mylat, self._mylon)) /
                           MAX_DISTANCE * MIDI_VOLUME_MAX)
+            deg = a.bearing_from(self._mylat, self._mylon)
+            pan_value = map_bearing_to_pan(deg)
+            print("XXXX pan channel %d to %d" % (midi_channel, pan_value))
+            set_pan(self._player, pan_value, midi_channel)
             self._player.note_on(note, volume, midi_channel)
             print("Id %s alt %s MIDI note %d MIDI vol %d MIDI chan %d "
                   "dist %d m" %
@@ -119,7 +126,7 @@ class ADSBTheremin(object):
                     break
                 line = fp.readline()
                 self._map.update(line)
-            print("Done. Seeing %d aircraft" % self._map.count())
+            print("Done.")
             last_midi_update = 0.0
             while True:
                 line = fp.readline()
@@ -129,6 +136,7 @@ class ADSBTheremin(object):
                     last_midi_update = time.time()
         finally:
             sock.close()
+            self.all_notes_off()
             pygame.midi.quit()
 
 
@@ -153,6 +161,9 @@ def main():
 
     args = parser.parse_args()
 
+    print("Delaying 10 seconds...")
+    time.sleep(10)
+    print("Done")
     adsb_theremin = ADSBTheremin(args)
     adsb_theremin.init()
     adsb_theremin.play()
