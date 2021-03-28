@@ -153,19 +153,30 @@ class AircraftMap(object):
     def print_summary(self):
         print("%d aircraft" % len(self._aircraft))
 
-    def closest(self, count):
+    def closest(self, count, min_altitude=0, max_altitude=100000):
         """
-        Return the closest [count] aircraft.
+        Return the closest [count] aircraft. If min_altitude or
+        max_altitude is provided, limit the retured results to
+        aircraft in that range. May return fewer than <count>
+        aircraft.
         """
         # I know there's a one-line list comprehension that will do
         # this, but I suck.
+        ret = []
         dist_map = {}  # distance -> aircraft
         for id, aircraft in self._aircraft.items():
             dist = aircraft.distance_to(self._latitude, self._longitude)
             dist_map[dist] = aircraft
-        closest = sorted(dist_map.keys())[:count]
-        ret = [dist_map[d] for d in closest]
+        closest = sorted(dist_map.keys())
+        for d in closest:
+            aircraft = dist_map[d]
+            if (aircraft.altitude <= max_altitude and
+                   aircraft.altitude >= min_altitude):
+                ret.append(aircraft)
+            if len(ret) >= count:
+                return ret
         return ret
+
 
     def count(self):
         """

@@ -11,6 +11,7 @@ import aircraft_map
 import pygame.midi
 
 UPDATE_INTERVAL = 30.0  # seconds
+MIN_ALTITUDE = 3000
 MAX_ALTITUDE = 40000
 MAX_DISTANCE = 70000
 MIDI_VOLUME_MAX = 100
@@ -100,11 +101,16 @@ class ADSBTheremin(object):
                self._map.count()))
 
         self.all_notes_off()
+#        aircraft = self._map.closest(
+#            self._polyphony, min_altitude=MIN_ALTITUDE,
+#            max_altitude=MAX_ALTITUDE)
         aircraft = self._map.closest(self._polyphony)
         midi_channel = 0
         for a in aircraft:
             if (a.distance_to(self._mylat, self._mylon) > MAX_DISTANCE or
                 a.altitude > MAX_ALTITUDE):
+                continue
+            if (a.altitude < MIN_ALTITUDE):
                 continue
             note_index = int(float(a.altitude) / MAX_ALTITUDE * MAX_MIDI_NOTE)
             note = MIDI_NOTE_PALETTE[note_index]
