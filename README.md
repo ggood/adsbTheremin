@@ -7,7 +7,7 @@ Why not? Turn everything in our environment into music.
 
 Think about a theremin - a musical instrument played by bringing
 your hands in proximity to an antenna on the instrument.
-What if that antenna was your house, and intead of human
+What if that antenna was your house, and instead of human
 hands, our instrument was played by airplanes flying overhead?
 
 This code listens to ADSB [https://www.faa.gov/nextgen/programs/adsb/]
