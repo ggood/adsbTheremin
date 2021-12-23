@@ -16,18 +16,30 @@ MAX_ALTITUDE = 40000
 MAX_DISTANCE = 70000
 MIDI_VOLUME_MAX = 100
 
-MIDI_NOTE_PALETTE = (
-24,
-36,
-48, 50, 53, 55, 58,
-60, 62, 65, 67, 70,
-72, 74, 77, 79, 82,
-84, 86, 89, 91, 94,
-106, 108, 111, 113, 116,
-118, 120, 123
-)
-
-MAX_MIDI_NOTE = len(MIDI_NOTE_PALETTE)
+MIDI_NOTE_PALETTES = [
+# G, A, C, D, F "pentatonic"
+    (
+        24,
+        36,
+        48, 50, 53, 55, 58,
+        60, 62, 65, 67, 70,
+        72, 74, 77, 79, 82,
+        84, 86, 89, 91, 94,
+        106, 108, 111, 113, 116,
+        118, 120, 123
+    ),
+# Minor 11th
+    (
+        24,
+        36,
+        48, 51, 55, 58, 62, 65,
+        60, 63, 67, 70, 74, 77,
+        72, 75, 79, 82, 86, 89,
+        84, 87, 91, 94, 98, 101,
+        96, 99, 103, 106, 110, 113,
+        108, 111, 115, 118, 122, 125
+    )
+]
 
 
 def map_int(x, in_min, in_max, out_min, out_max):
@@ -67,6 +79,8 @@ class ADSBTheremin(object):
         self._polyphony = args.polyphony
         self._update_interval = args.update_interval
         self._player = None
+        self._all_palettes = MIDI_NOTE_PALETTES
+        self._palette = self._all_palettes[0]
         self._map = aircraft_map.AircraftMap(args.lat, args.lon)
 
     def init(self):
@@ -113,8 +127,8 @@ class ADSBTheremin(object):
                 continue
             if (a.altitude < MIN_ALTITUDE):
                 continue
-            note_index = int(float(a.altitude) / MAX_ALTITUDE * MAX_MIDI_NOTE)
-            note = MIDI_NOTE_PALETTE[note_index]
+            note_index = int(float(a.altitude) / MAX_ALTITUDE * len(self._palette))
+            note = self._palette[note_index]
             volume = int((MAX_DISTANCE -
                           a.distance_to(self._mylat, self._mylon)) /
                           MAX_DISTANCE * MIDI_VOLUME_MAX)
