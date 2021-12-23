@@ -143,7 +143,7 @@ class AircraftMap(object):
         if time.time() - self._last_purge < DEFAULT_PURGE_INTERVAL:
             return
         n = 0
-        for id, aircraft in self._aircraft.items():
+        for id, aircraft in list(self._aircraft.items()):
             if aircraft._update < time.time() - self._purge_age:
                 del self._aircraft[id]
                 n += 1

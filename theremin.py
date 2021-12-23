@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import datetime
@@ -10,7 +10,7 @@ import aircraft_map
 
 import pygame.midi
 
-UPDATE_INTERVAL = 30.0  # seconds
+DEFAULT_UPDATE_INTERVAL = 10.0  # seconds
 MIN_ALTITUDE = 3000
 MAX_ALTITUDE = 40000
 MAX_DISTANCE = 70000
@@ -34,7 +34,7 @@ def map_int(x, in_min, in_max, out_min, out_max):
     """
     Map input from one range to another.
     """
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    return int((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min);
 
 
 def set_pan(player, pan, channel):
@@ -65,6 +65,7 @@ class ADSBTheremin(object):
         self._midi_channels = range(args.midi_channels)  # 0-based
         self._num_midi_channels = len(self._midi_channels)
         self._polyphony = args.polyphony
+        self._update_interval = args.update_interval
         self._player = None
         self._map = aircraft_map.AircraftMap(args.lat, args.lon)
 
@@ -76,7 +77,7 @@ class ADSBTheremin(object):
             devinf = pygame.midi.get_device_info(id)
             if devinf is not None:
                 (interf, name, input, output, opened) = devinf
-                if "IAC" in name and output == 1:
+                if "IAC" in name.decode("utf-8") and output == 1:
                     print("Using device id %d" % id)
                     break
             else:
@@ -149,7 +150,7 @@ class ADSBTheremin(object):
             while True:
                 line = fp.readline()
                 self._map.update(line)
-                if time.time() - last_midi_update > UPDATE_INTERVAL:
+                if time.time() - last_midi_update > self._update_interval:
                     self.make_sound()
                     last_midi_update = time.time()
         finally:
@@ -176,6 +177,9 @@ def main():
     parser.add_argument("--polyphony", type=int,
                         help="Number of simultaneous notes",
                         default=8)
+    parser.add_argument("--update_interval", type=int,
+                        help="Update interval in seconds",
+                        default=DEFAULT_UPDATE_INTERVAL)
 
     args = parser.parse_args()
 
