@@ -120,6 +120,7 @@ class ADSBTheremin(object):
                    a.distance_to(self._mylat, self._mylon)))
             midi_channel = (midi_channel + 1) % self._num_midi_channels
         self._palette_index = (self._palette_index + 1) % len(self._all_palettes)
+        self._palette = self._all_palettes[self._palette_index]
         print("")
 
 
