@@ -2,44 +2,19 @@
 
 import argparse
 import datetime
+import pygame.midi
 import socket
 import sys
 import time
 
 import aircraft_map
-
-import pygame.midi
+import palettes
 
 DEFAULT_UPDATE_INTERVAL = 10.0  # seconds
 MIN_ALTITUDE = 3000
 MAX_ALTITUDE = 40000
 MAX_DISTANCE = 70000
 MIDI_VOLUME_MAX = 100
-
-MIDI_NOTE_PALETTES = [
-# G, A, C, D, F "pentatonic"
-    (
-        24,
-        36,
-        48, 50, 53, 55, 58,
-        60, 62, 65, 67, 70,
-        72, 74, 77, 79, 82,
-        84, 86, 89, 91, 94,
-        106, 108, 111, 113, 116,
-        118, 120, 123
-    ),
-# Minor 11th
-    (
-        24,
-        36,
-        48, 51, 55, 58, 62, 65,
-        60, 63, 67, 70, 74, 77,
-        72, 75, 79, 82, 86, 89,
-        84, 87, 91, 94, 98, 101,
-        96, 99, 103, 106, 110, 113,
-        108, 111, 115, 118, 122, 125
-    )
-]
 
 
 def map_int(x, in_min, in_max, out_min, out_max):
@@ -79,8 +54,9 @@ class ADSBTheremin(object):
         self._polyphony = args.polyphony
         self._update_interval = args.update_interval
         self._player = None
-        self._all_palettes = MIDI_NOTE_PALETTES
-        self._palette = self._all_palettes[0]
+        self._all_palettes = palettes.MIDI_NOTE_PALETTES
+        self._palette_index = 0
+        self._palette = self._all_palettes[self._palette_index]
         self._map = aircraft_map.AircraftMap(args.lat, args.lon)
 
     def init(self):
@@ -111,6 +87,7 @@ class ADSBTheremin(object):
                 self._player.note_off(i, channel=midi_channel)
 
     def make_sound(self):
+        print("Rendering sound with palette %d" % self._palette_index)
         print("%s: %d aircraft" %
               (datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
                self._map.count()))
@@ -142,6 +119,7 @@ class ADSBTheremin(object):
                   (a.id, a.altitude, note, volume, midi_channel + 1,
                    a.distance_to(self._mylat, self._mylon)))
             midi_channel = (midi_channel + 1) % self._num_midi_channels
+        self._palette_index = (self._palette_index + 1) % len(self._all_palettes)
         print("")
 
 

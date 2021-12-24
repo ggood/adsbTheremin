@@ -1,6 +1,7 @@
 # aircraft_map: maintains a list of aircraft "seen" by an ADSB
 # receiver.
 
+import copy
 import math
 import time
 
@@ -47,6 +48,7 @@ class Aircraft(object):
         self._latitude = latitude
         self._longitude = longitude
         self._update = time.time()
+        #print("%s update time %f" % (self._id, self._update))
 
     def distance_to(self, lat, lon):
         """
@@ -113,7 +115,7 @@ class AircraftMap(object):
         self._latitude = latitude
         self._longitude = longitude
         self._purge_age = purge_age
-        self._last_purge = time.time()
+        self._start_time = self._last_purge = time.time()
 
     def update(self, line):
         self._purge()
@@ -131,6 +133,7 @@ class AircraftMap(object):
                         if aircraft is None:
                             aircraft = Aircraft(aircraft_id)
                             self._aircraft[aircraft_id] = aircraft
+                            print("Added %s at time %f" % (aircraft_id, time.time() - self._start_time))
                         aircraft.update(altitude, lat, lon)
                     except ValueError:
                         # Some position messages omit the lat/lon. Ignore.
@@ -143,11 +146,15 @@ class AircraftMap(object):
         if time.time() - self._last_purge < DEFAULT_PURGE_INTERVAL:
             return
         n = 0
+        prev_aircraft = copy.deepcopy(self._aircraft)
         for id, aircraft in list(self._aircraft.items()):
             if aircraft._update < time.time() - self._purge_age:
+                print("Deleting %s, update %f at time %f" % (id, aircraft._update, time.time() - self._start_time))
                 del self._aircraft[id]
                 n += 1
-        #print("purged %d aircraft, %d remaining" % (n, len(self._aircraft)))
+        print("purged %d aircraft, %d remaining" % (n, len(self._aircraft)))
+        if len(self._aircraft) == 0:
+            import pdb; pdb.set_trace()
         self._last_purge = time.time()
 
     def print_summary(self):
