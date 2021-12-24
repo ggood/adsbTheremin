@@ -57,6 +57,8 @@ class ADSBTheremin(object):
         self._all_palettes = palettes.MIDI_NOTE_PALETTES
         self._palette_index = 0
         self._palette = self._all_palettes[self._palette_index]
+        self._shift = args.shift
+        self._palette_offset = 0
         self._map = aircraft_map.AircraftMap(args.lat, args.lon)
 
     def init(self):
@@ -87,7 +89,9 @@ class ADSBTheremin(object):
                 self._player.note_off(i, channel=midi_channel)
 
     def make_sound(self):
-        print("Rendering sound with palette %d" % self._palette_index)
+        print("Rendering sound with palette %d offset %d" % (self._palette_index, self._palette_offset))
+        palette = [note + self._palette_offset for note in self._palette]
+
         print("%s: %d aircraft" %
               (datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
                self._map.count()))
@@ -104,8 +108,8 @@ class ADSBTheremin(object):
                 continue
             if (a.altitude < MIN_ALTITUDE):
                 continue
-            note_index = int(float(a.altitude) / MAX_ALTITUDE * len(self._palette))
-            note = self._palette[note_index]
+            note_index = int(float(a.altitude) / MAX_ALTITUDE * len(palette))
+            note = palette[note_index]
             volume = int((MAX_DISTANCE -
                           a.distance_to(self._mylat, self._mylon)) /
                           MAX_DISTANCE * MIDI_VOLUME_MAX)
@@ -121,6 +125,7 @@ class ADSBTheremin(object):
             midi_channel = (midi_channel + 1) % self._num_midi_channels
         self._palette_index = (self._palette_index + 1) % len(self._all_palettes)
         self._palette = self._all_palettes[self._palette_index]
+        self._palette_offset = (self._palette_offset + self._shift) % 12
         print("")
 
 
@@ -173,6 +178,9 @@ def main():
     parser.add_argument("--update_interval", type=int,
                         help="Update interval in seconds",
                         default=DEFAULT_UPDATE_INTERVAL)
+    parser.add_argument("--shift", type=int,
+                        help="Semitones offset per palette change",
+                        default=0)
 
     args = parser.parse_args()
 
