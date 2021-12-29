@@ -18,6 +18,7 @@ class Aircraft(object):
         self._latitude = 0.0
         self._longitude = 0.0
         self._update = 0.0
+        self._create_time = time.time()
 
     @property
     def id(self):
@@ -48,7 +49,7 @@ class Aircraft(object):
         self._latitude = latitude
         self._longitude = longitude
         self._update = time.time()
-        #print("%s update time %f" % (self._id, self._update))
+        print("%s update time %f age %f" % (self._id, self._update, time.time() - self._create_time))
 
     def distance_to(self, lat, lon):
         """
@@ -145,6 +146,7 @@ class AircraftMap(object):
     def _purge(self):
         if time.time() - self._last_purge < DEFAULT_PURGE_INTERVAL:
             return
+        print("purge at %f" % (time.time() - self._start_time))
         n = 0
         prev_aircraft = copy.deepcopy(self._aircraft)
         for id, aircraft in list(self._aircraft.items()):
