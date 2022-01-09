@@ -130,27 +130,39 @@ class ADSBTheremin(object):
 
 
     def play(self):
-        print("Connect to %s:%d" % (self._host, self._port))
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((self._host, self._port))
-        fp = sock.makefile()
         try:
-            # Prime the aircraft list - just get updates for a little while
-            print("Priming aircraft map...")
-            prime_start = time.time()
+            cont = True
             while True:
-                if time.time() - prime_start > 3.0:
+                if not cont:
                     break
-                line = fp.readline()
-                self._map.update(line)
-            print("Done.")
-            last_midi_update = 0.0
-            while True:
-                line = fp.readline()
-                self._map.update(line)
-                if time.time() - last_midi_update > self._update_interval:
-                    self.make_sound()
-                    last_midi_update = time.time()
+                print("Connect to %s:%d" % (self._host, self._port))
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect((self._host, self._port))
+                fp = sock.makefile()
+                # Prime the aircraft list - just get updates for a little while
+                print("Priming aircraft map...")
+                prime_start = time.time()
+                while True:
+                    if time.time() - prime_start > 3.0:
+                        break
+                    line = fp.readline()
+                    self._map.update(line)
+                print("Done.")
+                last_midi_update = 0.0
+                cont = False
+                while True:
+                    line = fp.readline()
+                    if len(line) == 0:
+                        # This seems to happen sometimes, we need to reconnect
+                        print("No data, reconnect")
+                        cont = True
+                        sock.close()
+                        self.all_notes_off()
+                        break
+                    self._map.update(line)
+                    if time.time() - last_midi_update > self._update_interval:
+                        self.make_sound()
+                        last_midi_update = time.time()
         finally:
             sock.close()
             self.all_notes_off()
