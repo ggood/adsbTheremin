@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""
+A Python program to read ADS-B transponder messages from aircraft
+and turn then into music.
+"""
+
 import argparse
 import datetime
 import pygame.midi
@@ -15,11 +20,12 @@ MAX_DISTANCE = 70000
 MIDI_VOLUME_MAX = 100
 
 
-def map_int(x, in_min, in_max, out_min, out_max):
+def map_int(x_coord, in_min, in_max, out_min, out_max):
     """
     Map input from one range to another.
     """
-    return int((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min);
+    return int((x_coord - in_min) * (out_max - out_min) /
+               (in_max - in_min) + out_min)
 
 
 def set_pan(player, pan, channel):
@@ -37,8 +43,7 @@ def map_bearing_to_pan(bearing):
     bearing = (int(bearing) + 270) % 360
     if bearing < 180:
         return map_int(bearing, 0, 180, 127, 0)
-    else:
-        return map_int(bearing, 180, 360, 0, 127)
+    return map_int(bearing, 180, 360, 0, 127)
 
 
 class ADSBTheremin(object):
@@ -89,7 +94,8 @@ class ADSBTheremin(object):
                 self._player.note_off(i, channel=midi_channel)
 
     def make_sound(self):
-        print("Rendering sound with palette %d offset %d" % (self._palette_index, self._palette_offset))
+        print("Rendering sound with palette %d offset %d" %
+              (self._palette_index, self._palette_offset))
         palette = [note + self._palette_offset for note in self._palette]
 
         print("%s: %d aircraft" %
@@ -105,7 +111,7 @@ class ADSBTheremin(object):
             if (a.distance_to(self._mylat, self._mylon) > MAX_DISTANCE or
                 a.altitude > self._max_altitude):
                 continue
-            if (a.altitude < self._min_altitude):
+            if a.altitude < self._min_altitude:
                 continue
             note_index = int(float(a.altitude) / self._max_altitude * len(palette))
             note = palette[note_index]
