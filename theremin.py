@@ -11,8 +11,6 @@ import aircraft_map
 import palettes
 
 DEFAULT_UPDATE_INTERVAL = 10.0  # seconds
-MIN_ALTITUDE = 3000
-MAX_ALTITUDE = 40000
 MAX_DISTANCE = 70000
 MIDI_VOLUME_MAX = 100
 
@@ -59,6 +57,8 @@ class ADSBTheremin(object):
         self._palette = self._all_palettes[self._palette_index]
         self._shift = args.shift
         self._palette_offset = 0
+        self._min_altitude = args.min_altitude
+        self._max_altitude = args.max_altitude
         self._map = aircraft_map.AircraftMap(args.lat, args.lon)
 
     def init(self):
@@ -97,18 +97,17 @@ class ADSBTheremin(object):
                self._map.count()))
 
         self.all_notes_off()
-#        aircraft = self._map.closest(
-#            self._polyphony, min_altitude=MIN_ALTITUDE,
-#            max_altitude=MAX_ALTITUDE)
-        aircraft = self._map.closest(self._polyphony)
+        aircraft = self._map.closest(
+            self._polyphony, min_altitude=self._min_altitude,
+            max_altitude=self._max_altitude)
         midi_channel = 0
         for a in aircraft:
             if (a.distance_to(self._mylat, self._mylon) > MAX_DISTANCE or
-                a.altitude > MAX_ALTITUDE):
+                a.altitude > self._max_altitude):
                 continue
-            if (a.altitude < MIN_ALTITUDE):
+            if (a.altitude < self._min_altitude):
                 continue
-            note_index = int(float(a.altitude) / MAX_ALTITUDE * len(palette))
+            note_index = int(float(a.altitude) / self._max_altitude * len(palette))
             note = palette[note_index]
             volume = int((MAX_DISTANCE -
                           a.distance_to(self._mylat, self._mylon)) /
@@ -193,6 +192,12 @@ def main():
     parser.add_argument("--shift", type=int,
                         help="Semitones offset per palette change",
                         default=0)
+    parser.add_argument("--min_altitude", type=int,
+                         help="Ignore aircraft lower than this altitude (feet)",
+                         default=0)
+    parser.add_argument("--max_altitude", type=int,
+                         help="Ignore aircraft higher than this altitude (feet)",
+                         default=100000)
 
     args = parser.parse_args()
 

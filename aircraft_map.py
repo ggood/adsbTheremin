@@ -49,7 +49,6 @@ class Aircraft(object):
         self._latitude = latitude
         self._longitude = longitude
         self._update = time.time()
-        #print("%s update time %f new age %f" % (self._id, self._update, time.time() - self._update))
 
     def distance_to(self, lat, lon):
         """
@@ -155,10 +154,6 @@ class AircraftMap(object):
                 del self._aircraft[id]
                 n += 1
         print("purged %d aircraft, %d remaining" % (n, len(self._aircraft)))
-        if len(self._aircraft) == 0:
-            import sys
-            sys.exit(1)
-            import pdb; pdb.set_trace()
         self._last_purge = time.time()
 
     def print_summary(self):
