@@ -113,7 +113,7 @@ class ADSBTheremin(object):
                 continue
             if a.altitude < self._min_altitude:
                 continue
-            note_index = int(float(a.altitude) / self._max_altitude * len(palette))
+            note_index = int(float(a.altitude - 1) / self._max_altitude * len(palette))
             note = palette[note_index]
             volume = int((MAX_DISTANCE -
                           a.distance_to(self._mylat, self._mylon)) /
