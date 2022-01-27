@@ -8,11 +8,15 @@ from aircraft, with timestamps, and turn them into music.
 import argparse
 import datetime
 import pygame.midi
+import re
 import time
+
+import aircraft_map
 
 DEFAULT_UPDATE_INTERVAL = 10.0  # seconds
 MAX_DISTANCE = 70000
 MIDI_VOLUME_MAX = 100
+TIME_RE = re.compile("^([0-9\.][0-9\.]*) (.*)")
 
 class FilePlayer(object):
     def __init__(self, args):
@@ -23,6 +27,7 @@ class FilePlayer(object):
         self._player = None
         self._min_altitude = args.min_altitude
         self._max_altitude = args.max_altitude
+        self._map = aircraft_map.AircraftMap(args.lat, args.lon)
 
     def init(self):
         if not pygame.midi.get_init():
@@ -53,9 +58,16 @@ class FilePlayer(object):
 
     def play(self):
         print("play from %s" % self._file)
+
         with open(self._file, "r") as fp:
             for line in fp:
-                print(line.rstrip())
+                self._map.update(line)
+                g = TIME_RE.search(line)
+                event_time = g.groups()[0]
+                adsb_data = g.groups()[1]
+                print(adsb_data)
+                self._map.update(adsb_data)
+                print(self._map.closest(3))
 
 def main():
     parser = argparse.ArgumentParser()

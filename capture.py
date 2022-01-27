@@ -29,6 +29,8 @@ class ADSBCapture(object):
                     if time.time() > self._end_time:
                         break
                     outfile.write("%f %s" % (time.time(), line))
+                    if len(line) == 0:
+                        import pdb; pdb.set_trace()
             finally:
                 sock.close()
 

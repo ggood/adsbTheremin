@@ -126,7 +126,7 @@ class AircraftMap(object):
                 try:
                     aircraft_id = parts[4]
                     try:
-                        altitude = int(parts[11])
+                        altitude = int(parts[11])  #  TODO deal with index error
                         lat = float(parts[14])
                         lon = float(parts[15])
                         aircraft = self._aircraft.get(aircraft_id)
