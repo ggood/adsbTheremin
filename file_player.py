@@ -12,6 +12,7 @@ import re
 import time
 
 import aircraft_map
+import palettes
 
 DEFAULT_UPDATE_INTERVAL = 10.0  # seconds
 MAX_DISTANCE = 70000
@@ -28,6 +29,9 @@ class FilePlayer(object):
         self._min_altitude = args.min_altitude
         self._max_altitude = args.max_altitude
         self._map = aircraft_map.AircraftMap(args.lat, args.lon)
+        self._all_palettes = palettes.MIDI_NOTE_PALETTES
+        self._num_midi_channels = 8  # TODO(ggood) make configurable
+        self._time_factor = args.time_factor
 
     def init(self):
         if not pygame.midi.get_init():
@@ -58,16 +62,40 @@ class FilePlayer(object):
 
     def play(self):
         print("play from %s" % self._file)
+        palette = self._all_palettes[0]
 
         with open(self._file, "r") as fp:
+            last_event_time = None
             for line in fp:
                 self._map.update(line)
                 g = TIME_RE.search(line)
-                event_time = g.groups()[0]
+                event_time = float(g.groups()[0])
                 adsb_data = g.groups()[1]
-                print(adsb_data)
                 self._map.update(adsb_data)
-                print(self._map.closest(3))
+                if last_event_time is not None:
+                    time.sleep(self._time_factor * (event_time - last_event_time))
+                last_event_time = event_time
+                aircraft = self._map.closest(20)
+                midi_channel = 0
+                # This is wrong, I should just sonify each note as it is read, don't
+                # even bother updating the aircraft map.
+                for a in aircraft:
+                    if (a.distance_to(self._mylat, self._mylon) > MAX_DISTANCE or
+                        a.altitude > self._max_altitude):
+                        continue
+                    if a.altitude < self._min_altitude:
+                        continue
+                    note_index = int(float(a.altitude - 1) / self._max_altitude * len(palette))
+                    note = palette[note_index]
+                    volume = int((MAX_DISTANCE -
+                                  a.distance_to(self._mylat, self._mylon)) /
+                                  MAX_DISTANCE * MIDI_VOLUME_MAX)
+                    self._player.note_on(note, volume, midi_channel)
+                    print("Id %s alt %s MIDI note %d MIDI vol %d MIDI chan %d "
+                          "dist %d m" %
+                          (a.id, a.altitude, note, volume, midi_channel + 1,
+                           a.distance_to(self._mylat, self._mylon)))
+                    midi_channel = (midi_channel + 1) % self._num_midi_channels
 
 def main():
     parser = argparse.ArgumentParser()
@@ -87,6 +115,9 @@ def main():
     parser.add_argument("-f", "--file", type=str,
                         help="File to read aircraft data from",
                         required=True)
+    parser.add_argument("--time_factor", type=int,
+                         help="Slow down playback by this factor",
+                         default=1)
 
     args = parser.parse_args()
 
