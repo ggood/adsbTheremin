@@ -12,13 +12,13 @@ EARTH_RADIUS = 6371000  # Earth's radius in meters
 
 class Aircraft(object):
     """Represents a single aircraft"""
-    def __init__(self, id):
+    def __init__(self, id, now=None):
         self._id = id
         self._altitude = 0
         self._latitude = 0.0
         self._longitude = 0.0
         self._update = 0.0
-        self._create_time = time.time()
+        self._create_time = now or time.time()
 
     @property
     def id(self):
@@ -48,10 +48,12 @@ class Aircraft(object):
                 self._latitude == other._latitude and
                 self._longitude == other._longitude)
 
-    def update(self, altitude, latitude, longitude):
+    def update(self, altitude, latitude, longitude, now=None):
         """Update an aircraft's altitude, latitude, and longitude.
            Returns True if something changed in the aircraft's
            position."""
+        if now == None:
+            now = time.time()
         updated = False
         if (self._altitude != altitude or
                 self._latitude != latitude or
@@ -64,7 +66,7 @@ class Aircraft(object):
             self._latitude = latitude
             self._longitude = longitude
             updated = True
-        self._update = time.time()
+        self._update = now
         return updated
 
     def distance_to(self, lat, lon):
@@ -121,7 +123,7 @@ class AircraftMap(object):
     Aircraft not heard from in purge_age seconds will be discarded.
     """
     def __init__(self, latitude, longitude, purge_age=DEFAULT_PURGE_TIME,
-                 position_accuracy=2, altitude_accuracy=-2):
+                 position_accuracy=2, altitude_accuracy=-2, start_time=None):
         """
         Arguments:
         latitude: the latitude, in fractional degrees, of the observer.
@@ -140,18 +142,21 @@ class AircraftMap(object):
         self._purge_age = purge_age
         self._position_accuracy = position_accuracy
         self._altitude_accuracy = altitude_accuracy
-        self._start_time = self._last_purge = time.time()
+        self._start_time = self._last_purge = start_time or time.time()
 
-    def update(self, parts):
+    def update(self, parts, now=None):
+        if now == None:
+            now = time.time()
+        self._purge(now=now)
         aircraft_id = parts[1]
         altitude = parts[2]
         lat = parts[3]
         lon = parts[4]
         aircraft = self._aircraft.get(aircraft_id)
         if aircraft is None:
-            aircraft = Aircraft(aircraft_id)
+            aircraft = Aircraft(aircraft_id, now)
             self._aircraft[aircraft_id] = aircraft
-        return (aircraft.update(altitude, lat, lon), aircraft)
+        return (aircraft.update(altitude, lat, lon, now=now), aircraft)
 
     def update_from_raw(self, line, now=None):
         if now == None:
@@ -169,8 +174,7 @@ class AircraftMap(object):
                         lon = round(float(parts[15]), self._position_accuracy)
                         aircraft = self._aircraft.get(aircraft_id)
                         if aircraft is None:
-                            #print("New %s" % aircraft_id)
-                            aircraft = Aircraft(aircraft_id)
+                            aircraft = Aircraft(aircraft_id, now)
                             self._aircraft[aircraft_id] = aircraft
                         return (aircraft.update(altitude, lat, lon), aircraft)
                     except ValueError:
@@ -221,9 +225,12 @@ class AircraftMap(object):
                 return ret
         return ret
 
-
     def count(self):
         """
         Return the count of aircraft in the map.
         """
         return len(self._aircraft)
+
+    def get(self, aircraft_id):
+        return self._aircraft.get(aircraft_id)
+
