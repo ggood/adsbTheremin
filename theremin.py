@@ -102,7 +102,7 @@ class ADSBTheremin(object):
               (datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
                self._map.count()))
 
-        self.all_notes_off()
+        #self.all_notes_off()
         aircraft = self._map.closest(
             self._polyphony, min_altitude=self._min_altitude,
             max_altitude=self._max_altitude)
@@ -110,17 +110,19 @@ class ADSBTheremin(object):
         for a in aircraft:
             if (a.distance_to(self._mylat, self._mylon) > MAX_DISTANCE or
                 a.altitude > self._max_altitude):
+                print("ignoring %s" % a)
                 continue
             if a.altitude < self._min_altitude:
+                print("ignoring %s" % a)
                 continue
             note_index = int(float(a.altitude - 1) / self._max_altitude * len(palette))
+
             note = palette[note_index]
             volume = int((MAX_DISTANCE -
                           a.distance_to(self._mylat, self._mylon)) /
                           MAX_DISTANCE * MIDI_VOLUME_MAX)
             deg = a.bearing_from(self._mylat, self._mylon)
             pan_value = map_bearing_to_pan(deg)
-            print("XXXX pan channel %d to %d" % (midi_channel, pan_value))
             set_pan(self._player, pan_value, midi_channel)
             self._player.note_on(note, volume, midi_channel)
             print("Id %s alt %s MIDI note %d MIDI vol %d MIDI chan %d "
@@ -192,7 +194,7 @@ def main():
     parser.add_argument("--polyphony", type=int,
                         help="Number of simultaneous notes",
                         default=8)
-    parser.add_argument("--update_interval", type=int,
+    parser.add_argument("--update_interval", type=float,
                         help="Update interval in seconds",
                         default=DEFAULT_UPDATE_INTERVAL)
     parser.add_argument("--shift", type=int,

@@ -43,12 +43,29 @@ class Aircraft(object):
     def __repr__(self):
         return self.__str__()
 
+    def __eq__(self, other):
+        return (self._altitude == other._altitude and
+                self._latitude == other._latitude and
+                self._longitude == other._longitude)
+
     def update(self, altitude, latitude, longitude):
-        """Update an aircraft's altitude, latitude, and longitude"""
-        self._altitude = altitude
-        self._latitude = latitude
-        self._longitude = longitude
+        """Update an aircraft's altitude, latitude, and longitude.
+           Returns True if something changed in the aircraft's
+           position."""
+        updated = False
+        if (self._altitude != altitude or
+                self._latitude != latitude or
+                self._longitude != longitude):
+            #print("%s lat %s -> %s lon %s -> %s alt %s -> %s" % (
+            #    self._id,
+            #    self._latitude, latitude, self._longitude, longitude,
+            #    self._altitude, altitude))
+            self._altitude = altitude
+            self._latitude = latitude
+            self._longitude = longitude
+            updated = True
         self._update = time.time()
+        return updated
 
     def distance_to(self, lat, lon):
         """
@@ -103,18 +120,26 @@ class AircraftMap(object):
     the list of aircraft.
     Aircraft not heard from in purge_age seconds will be discarded.
     """
-    def __init__(self, latitude, longitude, purge_age=DEFAULT_PURGE_TIME):
+    def __init__(self, latitude, longitude, purge_age=DEFAULT_PURGE_TIME,
+                 position_accuracy=2, altitude_accuracy=-2):
         """
         Arguments:
         latitude: the latitude, in fractional degrees, of the observer.
         longitude: the longitude, in fractional degrees, of the observer.
         purge_age: the time, in seconds, after which aircraft will be
                    discarded if no position updates have been seen.
+        position_accuracy: Latitude and longitude numbers will be rounded
+                           to this number of decimal places.
+        altitude_accuracy: Altitude numbers will be rounded to this number
+                           of decimal places (negative numbers round to
+                           10s, 100, e.g. -2 rounds to nearest 100)
         """
         self._aircraft = {}  # ADSB ID -> aircraft
         self._latitude = latitude
         self._longitude = longitude
         self._purge_age = purge_age
+        self._position_accuracy = position_accuracy
+        self._altitude_accuracy = altitude_accuracy
         self._start_time = self._last_purge = time.time()
 
     def update(self, line):
@@ -126,34 +151,32 @@ class AircraftMap(object):
                 try:
                     aircraft_id = parts[4]
                     try:
-                        altitude = int(parts[11])  #  TODO deal with index error
-                        lat = float(parts[14])
-                        lon = float(parts[15])
+                        altitude = round(int(parts[11]), self._altitude_accuracy)
+                        lat = round(float(parts[14]), self._position_accuracy)
+                        lon = round(float(parts[15]), self._position_accuracy)
                         aircraft = self._aircraft.get(aircraft_id)
                         if aircraft is None:
+                            #print("New %s" % aircraft_id)
                             aircraft = Aircraft(aircraft_id)
                             self._aircraft[aircraft_id] = aircraft
-                            print("Added %s at time %f" % (aircraft_id, time.time() - self._start_time))
-                        aircraft.update(altitude, lat, lon)
+                        return (aircraft.update(altitude, lat, lon), aircraft)
                     except ValueError:
                         # Some position messages omit the lat/lon. Ignore.
-                        return
+                        return False, None
                 except:
                     print("big oops: %s" % line)
                     raise
+        return False, None
 
     def _purge(self):
         if time.time() - self._last_purge < DEFAULT_PURGE_INTERVAL:
             return
-        print("purge at %f" % (time.time() - self._start_time))
         n = 0
         prev_aircraft = copy.deepcopy(self._aircraft)
         for id, aircraft in list(self._aircraft.items()):
             if aircraft._update < time.time() - self._purge_age:
-                print("Deleting %s, update %f at age %f" % (id, aircraft._update, time.time() - aircraft._update))
                 del self._aircraft[id]
                 n += 1
-        print("purged %d aircraft, %d remaining" % (n, len(self._aircraft)))
         self._last_purge = time.time()
 
     def print_summary(self):
