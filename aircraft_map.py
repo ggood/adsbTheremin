@@ -210,6 +210,7 @@ class AircraftMap(object):
         """
         # I know there's a one-line list comprehension that will do
         # this, but I suck.
+        print("XXXX %s %s" % (min_altitude, max_altitude))
         ret = []
         dist_map = {}  # distance -> aircraft
         for id, aircraft in self._aircraft.items():

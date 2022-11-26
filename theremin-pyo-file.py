@@ -20,6 +20,12 @@ DEFAULT_UPDATE_INTERVAL = 10.0  # seconds
 MAX_DISTANCE = 70000
 MIDI_VOLUME_MAX = 100
 
+def map_int(x_coord, in_min, in_max, out_min, out_max):
+    """
+    Map input from one range to another.
+    """
+    return int((x_coord - in_min) * (out_max - out_min) /
+               (in_max - in_min) + out_min)
 
 class FilePlayerTheremin(object):
     def __init__(self, args):
@@ -40,6 +46,7 @@ class FilePlayerTheremin(object):
         self._current_aircraft = {}
         self._server = pyo.Server().boot().start()
         self._oscs = []
+        self._shutdown_requested = False
         self._playback_index = 0
 
     def init(self):
@@ -56,9 +63,15 @@ class FilePlayerTheremin(object):
             self._oscs.append(pyo.RCOsc(freq=[100, 100], mul=0).out())
 
     def play(self):
-        nearest = self._map.closest(self._polyphony)
+        print("YYYY %s" % self._max_altitude)
+        nearest = self._map.closest(self._polyphony,
+                                    min_altitude=self._min_altitude,
+                                    max_altitude=self._max_altitude)
 
         def _advance_time():
+            if self._playback_index > len(self._recorded_data) - 1:
+                self._server.closeGui()
+                return
             # Compute new synthetic time
             real_time_offset = time.time() - self._real_start_time
             synthetic_time_offset = real_time_offset * self._playback_factor
@@ -72,36 +85,44 @@ class FilePlayerTheremin(object):
                     now=self._synthetic_now)
                 self._playback_index += 1
                 if self._playback_index > len(self._recorded_data) - 1:
-                    print("***** out of data - how to signal the Patterns to stop?")
-                    # TODO(ggood) - get this shutdown sequence right. Don't
-                    # bother opening the gui window if you don't have to.
-                    self._server.closeGui()
-                    self._server.stop()
-                    self._server.shutdown()
-                    sys.exit(0)
+                    break
                 next_time = self._recorded_data[self._playback_index][0]
                 if next_time > self._synthetic_now:
                     break
 
         def _make_sound():
             to_remove = []
-            for aircraft_id in self._current_aircraft:
+            for aircraft_id, aircraft in list(self._current_aircraft.items()):
                 if self._map.get(aircraft_id) is None:
                     print("lost %s" % aircraft_id)
+                    to_remove.append(aircraft_id)
+                if (aircraft.altitude <= self._min_altitude or
+                        aircraft.altitude >= self._max_altitude):
+                    print("aircraft %s busted altitude limits" % aircraft_id)
                     to_remove.append(aircraft_id)
             for aircraft_id in to_remove:
                 del(self._current_aircraft[aircraft_id])
             while len(self._current_aircraft) < self._polyphony:
                 # Add another
-                closest = self._map.closest(self._polyphony)
+                closest = self._map.closest(self._polyphony,
+                                            min_altitude=self._min_altitude,
+                                            max_altitude=self._max_altitude)
                 for aircraft in closest:
                     if aircraft.id not in self._current_aircraft:
                         self._current_aircraft[aircraft.id] = aircraft
                         print("Added %s" % aircraft.id)
                         break
+            osc_index = 0
+            for aircraft_id, aircraft in list(self._current_aircraft.items()):
+                freq = map_int(aircraft.altitude, self._min_altitude,
+                               self._max_altitude, 20, 1200)
+                self._oscs[osc_index].freq = freq
+                print("%d: %f Hz for alt %s" % (osc_index, freq, aircraft.altitude))
+                self._oscs[osc_index].mul = 0.1
+                osc_index += 1
 
-        time_pat = pyo.Pattern(function=_advance_time, time=0.1).play()
-        play_pat = pyo.Pattern(function=_make_sound, time=1.0).play()
+        time_pat = pyo.Pattern(function=_advance_time, time=0.01).play()
+        play_pat = pyo.Pattern(function=_make_sound, time=0.01).play()
         self._server.gui()
 
 

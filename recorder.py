@@ -60,8 +60,9 @@ class ADSBRecorder(object):
                         cont = True
                         sock.close()
                         break
-                    (updated, aircraft) = self._map.update(line)
+                    (updated, aircraft) = self._map.update_from_raw(line)
                     if updated:
+                        print(aircraft.id)
                         recorded_data.append(
                             [time.time(), aircraft.id, aircraft.altitude,
                              aircraft.latitude, aircraft.longitude])
