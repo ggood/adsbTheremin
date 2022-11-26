@@ -153,7 +153,7 @@ class ADSBTheremin(object):
                     if time.time() - prime_start > 3.0:
                         break
                     line = fp.readline()
-                    self._map.update(line)
+                    self._map.update_from_raw(line)
                 print("Done.")
                 last_midi_update = 0.0
                 cont = False
@@ -166,7 +166,7 @@ class ADSBTheremin(object):
                         sock.close()
                         self.all_notes_off()
                         break
-                    self._map.update(line)
+                    self._map.update_from_raw(line)
                     if time.time() - last_midi_update > self._update_interval:
                         self.make_sound()
                         last_midi_update = time.time()

@@ -121,7 +121,7 @@ class ADSBTheremin(object):
             # TODO - loop and read all available lines. This
             # might get behind if not called often enough.
             line = fp.readline()
-            self._map.update(line)
+            self._map.update_from_raw(line)
 
         try:
             cont = True
@@ -139,12 +139,12 @@ class ADSBTheremin(object):
                     if time.time() - prime_start > 3.0:  # XXX FIX
                         break
                     line = fp.readline()
-                    self._map.update(line)
+                    self._map.update_from_raw(line)
                 print("Done.")
                 break
             print("Starting pattern")
             collect_pat = pyo.Pattern(function=_collect, time=0.1).play()
-            make_sound_pat = pyo.Pattern(function=self.make_sound, time=10).play()
+            make_sound_pat = pyo.Pattern(function=self.make_sound, time=self._update_interval).play()
             #self._server.start()
             self._server.gui()
         finally:

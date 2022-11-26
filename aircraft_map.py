@@ -142,8 +142,21 @@ class AircraftMap(object):
         self._altitude_accuracy = altitude_accuracy
         self._start_time = self._last_purge = time.time()
 
-    def update(self, line):
-        self._purge()
+    def update(self, parts):
+        aircraft_id = parts[1]
+        altitude = parts[2]
+        lat = parts[3]
+        lon = parts[4]
+        aircraft = self._aircraft.get(aircraft_id)
+        if aircraft is None:
+            aircraft = Aircraft(aircraft_id)
+            self._aircraft[aircraft_id] = aircraft
+        return (aircraft.update(altitude, lat, lon), aircraft)
+
+    def update_from_raw(self, line, now=None):
+        if now == None:
+            now = time.time()
+        self._purge(now=now)
         parts = line.split(",")
         if parts and (parts[0] == "MSG"):
             if parts[1] == "3":
@@ -168,16 +181,18 @@ class AircraftMap(object):
                     raise
         return False, None
 
-    def _purge(self):
-        if time.time() - self._last_purge < DEFAULT_PURGE_INTERVAL:
+    def _purge(self, now=None):
+        if now == None:
+            now = time.time()
+        if now - self._last_purge < DEFAULT_PURGE_INTERVAL:
             return
         n = 0
         prev_aircraft = copy.deepcopy(self._aircraft)
         for id, aircraft in list(self._aircraft.items()):
-            if aircraft._update < time.time() - self._purge_age:
+            if aircraft._update < now - self._purge_age:
                 del self._aircraft[id]
                 n += 1
-        self._last_purge = time.time()
+        self._last_purge = now
 
     def print_summary(self):
         print("%d aircraft" % len(self._aircraft))
