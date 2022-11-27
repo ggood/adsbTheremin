@@ -63,7 +63,6 @@ class FilePlayerTheremin(object):
             self._oscs.append(pyo.RCOsc(freq=[100, 100], mul=0).out())
 
     def play(self):
-        print("YYYY %s" % self._max_altitude)
         nearest = self._map.closest(self._polyphony,
                                     min_altitude=self._min_altitude,
                                     max_altitude=self._max_altitude)
@@ -114,11 +113,17 @@ class FilePlayerTheremin(object):
                         break
             osc_index = 0
             for aircraft_id, aircraft in list(self._current_aircraft.items()):
+                # Set volume
+                dist = aircraft.distance_to(self._mylat, self._mylon)
+                vol = map_int(dist, 0, 10000, 0, 100)
+                vol = vol / 100.0
+                print("%s vol %f" % (aircraft_id, vol))
+                # Set frequency
                 freq = map_int(aircraft.altitude, self._min_altitude,
                                self._max_altitude, 20, 1200)
                 self._oscs[osc_index].freq = freq
                 print("%d: %f Hz for alt %s" % (osc_index, freq, aircraft.altitude))
-                self._oscs[osc_index].mul = 0.1
+                self._oscs[osc_index].mul = 0.01
                 osc_index += 1
 
         time_pat = pyo.Pattern(function=_advance_time, time=0.01).play()
