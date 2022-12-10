@@ -2,6 +2,7 @@
 # receiver.
 
 import copy
+import datetime
 import math
 import time
 
@@ -49,6 +50,8 @@ class Aircraft(object):
                 self._longitude == other._longitude)
 
     def update(self, altitude, latitude, longitude, now=None):
+#TODO(ggood) the "now" should actually be parsed out of the ADSB
+# message. Then we don't need to pass it in here.
         """Update an aircraft's altitude, latitude, and longitude.
            Returns True if something changed in the aircraft's
            position."""
@@ -169,13 +172,21 @@ class AircraftMap(object):
                 try:
                     aircraft_id = parts[4]
                     try:
-                        altitude = round(int(parts[11]), self._altitude_accuracy)
-                        lat = round(float(parts[14]), self._position_accuracy)
-                        lon = round(float(parts[15]), self._position_accuracy)
+                        d = parts[6]
+                        t = parts[7]
+                        msg_time = datetime.datetime.strptime(
+                            "%s:%s" % (d, t), "%Y/%m/%d:%H:%M:%S.%f")
+                        altitude = round(int(parts[11]),
+                                         self._altitude_accuracy)
+                        lat = round(float(parts[14]),
+                                    self._position_accuracy)
+                        lon = round(float(parts[15]),
+                                    self._position_accuracy)
                         aircraft = self._aircraft.get(aircraft_id)
                         if aircraft is None:
                             aircraft = Aircraft(aircraft_id, now)
                             self._aircraft[aircraft_id] = aircraft
+                            print("New: %s" % aircraft.id)
                         return (aircraft.update(altitude, lat, lon), aircraft)
                     except ValueError:
                         # Some position messages omit the lat/lon. Ignore.

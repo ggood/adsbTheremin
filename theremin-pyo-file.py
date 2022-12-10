@@ -68,6 +68,7 @@ class FilePlayerTheremin(object):
                                     max_altitude=self._max_altitude)
 
         def _advance_time():
+            print("index: %d" % self._playback_index)
             if self._playback_index > len(self._recorded_data) - 1:
                 self._server.closeGui()
                 return
@@ -90,6 +91,7 @@ class FilePlayerTheremin(object):
                     break
 
         def _make_sound():
+            print("make_sound")
             to_remove = []
             for aircraft_id, aircraft in list(self._current_aircraft.items()):
                 if self._map.get(aircraft_id) is None:
@@ -127,7 +129,7 @@ class FilePlayerTheremin(object):
                 osc_index += 1
 
         time_pat = pyo.Pattern(function=_advance_time, time=0.01).play()
-        play_pat = pyo.Pattern(function=_make_sound, time=0.01).play()
+        play_pat = pyo.Pattern(function=_make_sound, time=0.1).play()
         self._server.gui()
 
 
@@ -140,15 +142,15 @@ def main():
     parser.add_argument("--polyphony", type=int,
                         help="Number of simultaneous notes",
                         default=8)
-    parser.add_argument("--min_altitude", type=int,
+    parser.add_argument("--min-altitude", type=int,
                          help="Ignore aircraft lower than this altitude (feet)",
                          default=0)
-    parser.add_argument("--max_altitude", type=int,
+    parser.add_argument("--max-altitude", type=int,
                          help="Ignore aircraft higher than this altitude (feet)",
                          default=100000)
-    parser.add_argument("--input_file",
+    parser.add_argument("--input-file",
                         help="Input file to read", required=True)
-    parser.add_argument("--playback_factor", type=float,
+    parser.add_argument("--playback-factor", type=float,
                         help="Playback factor - how many times to speed up time",
                         default=10)
 
