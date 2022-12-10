@@ -60,7 +60,15 @@ class FilePlayerTheremin(object):
         print("Read %d entries starting at %f" % (
               len(self._recorded_data), self._real_start_time))
         for i in range(self._polyphony):
-            self._oscs.append(pyo.RCOsc(freq=[100, 100], mul=0).out())
+            #self._oscs.append(pyo.RCOsc(freq=[100, 100], mul=0).out())
+            self._oscs.append(pyo.Sine(freq=[100, 100], mul=0).out())
+
+    def map_frequency(self, aircraft):
+        # TODO: make this more flexible, allow mapping to a set
+        # of pitches rather than continuous
+        freq = map_int(aircraft.altitude, self._min_altitude,
+                       self._max_altitude, 20, 1200)
+        return freq
 
     def play(self):
         nearest = self._map.closest(self._polyphony,
@@ -68,13 +76,13 @@ class FilePlayerTheremin(object):
                                     max_altitude=self._max_altitude)
 
         def _advance_time():
-            print("index: %d" % self._playback_index)
             if self._playback_index > len(self._recorded_data) - 1:
                 self._server.closeGui()
                 return
             # Compute new synthetic time
             real_time_offset = time.time() - self._real_start_time
             synthetic_time_offset = real_time_offset * self._playback_factor
+            print("index: %d real_time_offset %d synthetic_time_offset %d" % (self._playback_index, real_time_offset, synthetic_time_offset))
             self._synthetic_now = (self._synthetic_start_time +
                                    real_time_offset *
                                    self._playback_factor)
@@ -91,7 +99,6 @@ class FilePlayerTheremin(object):
                     break
 
         def _make_sound():
-            print("make_sound")
             to_remove = []
             for aircraft_id, aircraft in list(self._current_aircraft.items()):
                 if self._map.get(aircraft_id) is None:
@@ -103,8 +110,8 @@ class FilePlayerTheremin(object):
                     to_remove.append(aircraft_id)
             for aircraft_id in to_remove:
                 del(self._current_aircraft[aircraft_id])
-            while len(self._current_aircraft) < self._polyphony:
-                # Add another
+            if len(self._current_aircraft) < self._polyphony:
+                # Add more
                 closest = self._map.closest(self._polyphony,
                                             min_altitude=self._min_altitude,
                                             max_altitude=self._max_altitude)
@@ -119,16 +126,15 @@ class FilePlayerTheremin(object):
                 dist = aircraft.distance_to(self._mylat, self._mylon)
                 vol = map_int(dist, 0, 10000, 0, 100)
                 vol = vol / 100.0
-                print("%s vol %f" % (aircraft_id, vol))
                 # Set frequency
-                freq = map_int(aircraft.altitude, self._min_altitude,
-                               self._max_altitude, 20, 1200)
+                freq = self.map_frequency(aircraft)
+                self._oscs[osc_index].vol = vol
                 self._oscs[osc_index].freq = freq
-                print("%d: %f Hz for alt %s" % (osc_index, freq, aircraft.altitude))
+                print("%d: %s %f Hz vol %f for alt %s" % (osc_index, aircraft.id, freq, vol, aircraft.altitude))
                 self._oscs[osc_index].mul = 0.01
                 osc_index += 1
 
-        time_pat = pyo.Pattern(function=_advance_time, time=0.01).play()
+        time_pat = pyo.Pattern(function=_advance_time, time=0.1).play()
         play_pat = pyo.Pattern(function=_make_sound, time=0.1).play()
         self._server.gui()
 
