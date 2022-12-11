@@ -121,16 +121,18 @@ class FilePlayerTheremin(object):
                         print("Added %s" % aircraft.id)
                         break
             osc_index = 0
+            fa = self._map.farthest()
+            max_distance = fa.distance_to(self._mylat, self._mylon)
             for aircraft_id, aircraft in list(self._current_aircraft.items()):
                 # Set volume
                 dist = aircraft.distance_to(self._mylat, self._mylon)
-                vol = map_int(dist, 0, 10000, 0, 100)
+                vol = map_int(dist, 0, max_distance, 0, 100)
                 vol = vol / 100.0
                 # Set frequency
                 freq = self.map_frequency(aircraft)
-                self._oscs[osc_index].vol = vol
+                self._oscs[osc_index].mul = vol
                 self._oscs[osc_index].freq = freq
-                print("%d: %s %f Hz vol %f for alt %s" % (osc_index, aircraft.id, freq, vol, aircraft.altitude))
+                print("%d: %s %f Hz vol %f for alt %s dist %d" % (osc_index, aircraft.id, freq, vol, aircraft.altitude, dist))
                 self._oscs[osc_index].mul = 0.01
                 osc_index += 1
 

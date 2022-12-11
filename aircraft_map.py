@@ -242,6 +242,19 @@ class AircraftMap(object):
         """
         return len(self._aircraft)
 
+    def farthest(self):
+        """
+        Return the fathest aircraft
+        TODO can probably optimize this to compute on update
+        """
+        farthest = 0
+        for id, aircraft in self._aircraft.items():
+            dist = aircraft.distance_to(self._latitude, self._longitude)
+            if dist > farthest:
+                farthest = dist
+                farthest_aircraft = aircraft
+        return farthest_aircraft
+
     def get(self, aircraft_id):
         return self._aircraft.get(aircraft_id)
 
