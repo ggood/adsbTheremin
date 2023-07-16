@@ -169,16 +169,16 @@ def main():
     parser.add_argument("--polyphony", type=int,
                         help="Number of simultaneous notes",
                         default=8)
-    parser.add_argument("--update_interval", type=float,
+    parser.add_argument("--update-interval", type=float,
                         help="Update interval in seconds",
                         default=DEFAULT_UPDATE_INTERVAL)
     parser.add_argument("--shift", type=int,
                         help="Semitones offset per palette change",
                         default=0)
-    parser.add_argument("--min_altitude", type=int,
+    parser.add_argument("--min-altitude", type=int,
                          help="Ignore aircraft lower than this altitude (feet)",
                          default=0)
-    parser.add_argument("--max_altitude", type=int,
+    parser.add_argument("--max-altitude", type=int,
                          help="Ignore aircraft higher than this altitude (feet)",
                          default=100000)
 

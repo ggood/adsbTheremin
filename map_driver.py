@@ -80,7 +80,7 @@ def main():
     parser.add_argument("--polyphony", type=int,
                         help="Number of simultaneous notes",
                         default=8)
-    parser.add_argument("--update_interval", type=int,
+    parser.add_argument("--update-interval", type=int,
                         help="Update interval in seconds",
                         default=DEFAULT_UPDATE_INTERVAL)
     parser.add_argument("--shift", type=int,

@@ -106,16 +106,16 @@ def main():
     parser.add_argument("--midi-channels", type=int,
                          help="Number of MIDI channels to use",
                          default=1)
-    parser.add_argument("--min_altitude", type=int,
+    parser.add_argument("--min-altitude", type=int,
                          help="Ignore aircraft lower than this altitude (feet)",
                          default=0)
-    parser.add_argument("--max_altitude", type=int,
+    parser.add_argument("--max-altitude", type=int,
                          help="Ignore aircraft higher than this altitude (feet)",
                          default=100000)
     parser.add_argument("-f", "--file", type=str,
                         help="File to read aircraft data from",
                         required=True)
-    parser.add_argument("--time_factor", type=int,
+    parser.add_argument("--time-factor", type=int,
                          help="Slow down playback by this factor",
                          default=1)
 
