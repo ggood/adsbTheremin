@@ -146,6 +146,7 @@ class AircraftMap(object):
         self._position_accuracy = position_accuracy
         self._altitude_accuracy = altitude_accuracy
         self._start_time = self._last_purge = start_time or time.time()
+        self._callbacks = {}  # map id -> callback
 
     def update(self, parts, now=None):
         if now == None:
@@ -183,11 +184,16 @@ class AircraftMap(object):
                         lon = round(float(parts[15]),
                                     self._position_accuracy)
                         aircraft = self._aircraft.get(aircraft_id)
+                        retval = False
                         if aircraft is None:
                             aircraft = Aircraft(aircraft_id, now)
                             self._aircraft[aircraft_id] = aircraft
                             print("New: %s" % aircraft.id)
-                        return (aircraft.update(altitude, lat, lon), aircraft)
+                            retval = aircraft.update(altitude, lat, lon)
+                            for id, callback in self._callbacks.items():
+                                print("Calling %s %s" % (id, callback))
+                                callback(self, aircraft)
+                        return (retval, aircraft)
                     except ValueError:
                         # Some position messages omit the lat/lon. Ignore.
                         return False, None
@@ -257,4 +263,7 @@ class AircraftMap(object):
 
     def get(self, aircraft_id):
         return self._aircraft.get(aircraft_id)
+
+    def add_callback(self, id, callback):
+        self._callbacks[id] = callback
 

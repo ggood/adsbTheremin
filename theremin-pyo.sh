@@ -4,4 +4,4 @@
     --lat 37.3806017231717 --lon -122.08773836561024 \
     --midi-channels 8 --polyphony 16 \
     --max-altitude 5000 --min-altitude 0 \
-    --update-interval 0.1  --shift 2 
+    --update-interval 5  --shift 1
