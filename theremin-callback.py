@@ -55,7 +55,6 @@ class ADSBTheremin(object):
         self._midi_channels = range(args.midi_channels)  # 0-based
         self._num_midi_channels = len(self._midi_channels)
         self._polyphony = args.polyphony
-        self._update_interval = args.update_interval
         self._player = None
         self._all_palettes = palettes.MIDI_NOTE_PALETTES
         self._palette_index = 0
@@ -68,8 +67,9 @@ class ADSBTheremin(object):
         self._map.add_callback("my-id", self._callback)
 
     @staticmethod
-    def _callback(self, aircraft):
+    def _callback(aircraft):
         print("XXXX got callback: %s" % aircraft)
+        self.play_one_aircraft(aircraft)
 
     def init(self):
         if not pygame.midi.get_init():
@@ -98,48 +98,30 @@ class ADSBTheremin(object):
             for i in range(127):
                 self._player.note_off(i, channel=midi_channel)
 
-    def make_sound(self):
-        print("Rendering sound with palette %d offset %d" %
-              (self._palette_index, self._palette_offset))
-        palette = [note + self._palette_offset for note in self._palette]
+    def play_one_aircraft(self, aircraft):
+        a = aircraft  # FIX NAME
+        if (a.distance_to(self._mylat, self._mylon) > MAX_DISTANCE or
+            a.altitude > self._max_altitude):
+            print("ignoring %s" % a)
+            return
+        if a.altitude < self._min_altitude:
+            print("ignoring %s" % a)
+            return
+        note_index = int(float(a.altitude - 1) / self._max_altitude * len(palette))
 
-        print("%s: %d aircraft" %
-              (datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
-               self._map.count()))
-
-        #self.all_notes_off()
-        aircraft = self._map.closest(
-            self._polyphony, min_altitude=self._min_altitude,
-            max_altitude=self._max_altitude)
-        midi_channel = 0
-        for a in aircraft:
-            if (a.distance_to(self._mylat, self._mylon) > MAX_DISTANCE or
-                a.altitude > self._max_altitude):
-                print("ignoring %s" % a)
-                continue
-            if a.altitude < self._min_altitude:
-                print("ignoring %s" % a)
-                continue
-            note_index = int(float(a.altitude - 1) / self._max_altitude * len(palette))
-
-            note = palette[note_index]
-            volume = int((MAX_DISTANCE -
-                          a.distance_to(self._mylat, self._mylon)) /
-                          MAX_DISTANCE * MIDI_VOLUME_MAX)
-            deg = a.bearing_from(self._mylat, self._mylon)
-            pan_value = map_bearing_to_pan(deg)
-            set_pan(self._player, pan_value, midi_channel)
-            self._player.note_on(note, volume, midi_channel)
-            print("Id %s alt %s MIDI note %d MIDI vol %d MIDI chan %d "
-                  "dist %d m" %
-                  (a.id, a.altitude, note, volume, midi_channel + 1,
-                   a.distance_to(self._mylat, self._mylon)))
-            midi_channel = (midi_channel + 1) % self._num_midi_channels
-        self._palette_index = (self._palette_index + 1) % len(self._all_palettes)
-        self._palette = self._all_palettes[self._palette_index]
-        self._palette_offset = (self._palette_offset + self._shift) % 12
-        print("")
-
+        note = palette[note_index]
+        volume = int((MAX_DISTANCE -
+                      a.distance_to(self._mylat, self._mylon)) /
+                      MAX_DISTANCE * MIDI_VOLUME_MAX)
+        deg = a.bearing_from(self._mylat, self._mylon)
+        pan_value = map_bearing_to_pan(deg)
+        set_pan(self._player, pan_value, midi_channel)
+        self._player.note_on(note, volume, midi_channel)
+        print("Id %s alt %s MIDI note %d MIDI vol %d MIDI chan %d "
+              "dist %d m" %
+              (a.id, a.altitude, note, volume, midi_channel + 1,
+               a.distance_to(self._mylat, self._mylon)))
+        midi_channel = (midi_channel + 1) % self._num_midi_channels
 
     def play(self):
         try:
@@ -172,9 +154,6 @@ class ADSBTheremin(object):
                         self.all_notes_off()
                         break
                     self._map.update_from_raw(line)
-                    if time.time() - last_midi_update > self._update_interval:
-                        self.make_sound()
-                        last_midi_update = time.time()
         finally:
             sock.close()
             self.all_notes_off()
@@ -199,9 +178,6 @@ def main():
     parser.add_argument("--polyphony", type=int,
                         help="Number of simultaneous notes",
                         default=8)
-    parser.add_argument("--update-interval", type=float,
-                        help="Update interval in seconds",
-                        default=DEFAULT_UPDATE_INTERVAL)
     parser.add_argument("--shift", type=int,
                         help="Semitones offset per palette change",
                         default=0)

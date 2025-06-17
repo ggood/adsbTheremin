@@ -189,10 +189,10 @@ class AircraftMap(object):
                             aircraft = Aircraft(aircraft_id, now)
                             self._aircraft[aircraft_id] = aircraft
                             print("New: %s" % aircraft.id)
-                            retval = aircraft.update(altitude, lat, lon)
-                            for id, callback in self._callbacks.items():
-                                print("Calling %s %s" % (id, callback))
-                                callback(self, aircraft)
+                        retval = aircraft.update(altitude, lat, lon)
+                        for id, callback in self._callbacks.items():
+                            print("Calling %s %s" % (id, callback))
+                            callback(aircraft)
                         return (retval, aircraft)
                     except ValueError:
                         # Some position messages omit the lat/lon. Ignore.

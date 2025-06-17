@@ -102,7 +102,7 @@ class ADSBTheremin(object):
               (datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
                self._map.count()))
 
-        #self.all_notes_off()
+        self.all_notes_off()  # TODO(ggood) should only turn off playing notes
         aircraft = self._map.closest(
             self._polyphony, min_altitude=self._min_altitude,
             max_altitude=self._max_altitude)
@@ -130,7 +130,7 @@ class ADSBTheremin(object):
                   (a.id, a.altitude, note, volume, midi_channel + 1,
                    a.distance_to(self._mylat, self._mylon)))
             midi_channel = (midi_channel + 1) % self._num_midi_channels
-        self._palette_index = (self._palette_index + 1) % len(self._all_palettes)
+        self._palette_index = (self._palette_index + self._shift) % len(self._all_palettes)
         self._palette = self._all_palettes[self._palette_index]
         self._palette_offset = (self._palette_offset + self._shift) % 12
         print("")
