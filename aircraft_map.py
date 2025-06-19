@@ -146,7 +146,7 @@ class AircraftMap(object):
         self._position_accuracy = position_accuracy
         self._altitude_accuracy = altitude_accuracy
         self._start_time = self._last_purge = start_time or time.time()
-        self._callbacks = {}  # map id -> callback
+        self._callback_destinations = {}  # map id -> callback_destination
 
     def update(self, parts, now=None):
         if now == None:
@@ -185,15 +185,23 @@ class AircraftMap(object):
                                     self._position_accuracy)
                         aircraft = self._aircraft.get(aircraft_id)
                         retval = False
+                        new_aircraft = False
                         if aircraft is None:
                             aircraft = Aircraft(aircraft_id, now)
                             self._aircraft[aircraft_id] = aircraft
-                            print("New: %s" % aircraft.id)
-                        retval = aircraft.update(altitude, lat, lon)
-                        for id, callback in self._callbacks.items():
-                            print("Calling %s %s" % (id, callback))
-                            callback(aircraft)
-                        return (retval, aircraft)
+                            new_aircraft = True
+                            #print("New: %s" % aircraft.id)
+                        else:
+                            #print("Update: %s" % aircraft.id)
+                            pass
+                        was_updated = aircraft.update(altitude, lat, lon)
+                        if was_updated:
+                            for id, obj in self._callback_destinations.items():
+                                if new_aircraft:
+                                    obj.new_aircraft_callback(aircraft)
+                                else:
+                                    obj.update_aircraft_callback(aircraft)
+                        return (was_updated, aircraft)
                     except ValueError:
                         # Some position messages omit the lat/lon. Ignore.
                         return False, None
@@ -211,6 +219,9 @@ class AircraftMap(object):
         prev_aircraft = copy.deepcopy(self._aircraft)
         for id, aircraft in list(self._aircraft.items()):
             if aircraft._update < now - self._purge_age:
+                # Invoke callback to notify about removal
+                for id, obj in self._callback_destinations.items():
+                    obj.remove_aircraft_callback(aircraft)
                 del self._aircraft[id]
                 n += 1
         self._last_purge = now
@@ -264,6 +275,6 @@ class AircraftMap(object):
     def get(self, aircraft_id):
         return self._aircraft.get(aircraft_id)
 
-    def add_callback(self, id, callback):
-        self._callbacks[id] = callback
+    def register_callback(self, id, obj):
+        self._callback_destinations[id] = obj
 
