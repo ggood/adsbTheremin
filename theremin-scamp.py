@@ -14,10 +14,10 @@ import time
 
 import aircraft_map
 import palettes
+import scamp_band
 import util
 
 import scamp
-
 
 DEFAULT_UPDATE_INTERVAL = 10
 
@@ -42,11 +42,13 @@ class ADSBTheremin(object):
         self._map = aircraft_map.AircraftMap(args.lat, args.lon)
         self._announcer_instrument = None
         self._session = None
+        self._band = None
 
     def init(self):
         # TODO(ggood) init scamp here
         self._session = scamp.Session()
-        self._announcer_instrument = self._session.new_part("Vibraphone")
+        self._band = scamp_band.ScampBand(self._session)
+        self._band.start()
         self._map.register_callback("Updater", self)
 
     def all_notes_off(self):
@@ -64,9 +66,11 @@ class ADSBTheremin(object):
         # by the distance to the aircraft.
         midi_note = self.altitude_to_midi_note(aircraft)
         volume = self.distance_to_volume(aircraft)
-        self._announcer_instrument.play_note(midi_note, volume, 1.0, blocking=False)
+        self._band.play_random_percussion(midi_note)
 
     def update_aircraft_callback(self, aircraft):
+        # HACK just "announce" even position updates
+        self.new_aircraft_callback(aircraft)
         print("Position update for aircraft %s" % aircraft.id)
         # TODO: re-determine the pitch based on the altitude
         # and if it's different, play a note of the new pitch.

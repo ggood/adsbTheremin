@@ -77,9 +77,10 @@ class ADSBRecorder(object):
                             print("%s, %d aircraft" %
                                   (aircraft.id, self._map.count()))
                     if updated:
-                        recorded_data.append(
-                            [time.time(), aircraft.id, aircraft.altitude,
-                             aircraft.latitude, aircraft.longitude])
+#                        recorded_data.append(
+#                            [time.time(), aircraft.id, aircraft.altitude,
+#                             aircraft.latitude, aircraft.longitude])
+                        recorded_data.append([time.time(), line])
         except ConnectionResetError:
             pass  # ignore and continue
         finally:
