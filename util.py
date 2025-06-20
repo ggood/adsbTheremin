@@ -4,6 +4,10 @@
 Some useful utilities for the ADSB theremin
 """
 
+# TODO(ggood) consider adding a "power" argument, where the
+# output alue is raised to the power (a float). But this 
+# only works if normalized to 0.0-1.0.
+# OR, scamp has this utility in scamp_extensions
 def map_int(value, in_min, in_max, out_min, out_max):
     """
     Map input from one range to another.

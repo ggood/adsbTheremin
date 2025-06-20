@@ -126,7 +126,9 @@ class AircraftMap(object):
     Aircraft not heard from in purge_age seconds will be discarded.
     """
     def __init__(self, latitude, longitude, purge_age=DEFAULT_PURGE_TIME,
-                 position_accuracy=2, altitude_accuracy=-2, start_time=None):
+                 position_accuracy=2, altitude_accuracy=-2, start_time=None,
+                 minimum_altitude=0, maximum_altitude=50000,
+                 maximum_distance=100000):
         """
         Arguments:
         latitude: the latitude, in fractional degrees, of the observer.
@@ -138,6 +140,9 @@ class AircraftMap(object):
         altitude_accuracy: Altitude numbers will be rounded to this number
                            of decimal places (negative numbers round to
                            10s, 100, e.g. -2 rounds to nearest 100)
+        minimum_altitude: Ignore data from aircraft lower than this
+        maximum_altitude: Ignore data from aircraft higher than this
+        maximum_distance: Ignore data from aircraft farther away than this
         """
         self._aircraft = {}  # ADSB ID -> aircraft
         self._latitude = latitude
@@ -146,6 +151,9 @@ class AircraftMap(object):
         self._position_accuracy = position_accuracy
         self._altitude_accuracy = altitude_accuracy
         self._start_time = self._last_purge = start_time or time.time()
+        self._minimum_altitude = minimum_altitude
+        self._maximum_altitude = maximum_altitude
+        self._maximum_distance = maximum_distance
         self._callback_destinations = {}  # map id -> callback_destination
 
     def update(self, parts, now=None):
@@ -156,6 +164,8 @@ class AircraftMap(object):
         altitude = parts[2]
         lat = parts[3]
         lon = parts[4]
+        if self._should_ignore(altitude, lat, lon):
+            return None
         aircraft = self._aircraft.get(aircraft_id)
         if aircraft is None:
             aircraft = Aircraft(aircraft_id, now)
@@ -183,6 +193,8 @@ class AircraftMap(object):
                                     self._position_accuracy)
                         lon = round(float(parts[15]),
                                     self._position_accuracy)
+                        if self._should_ignore(altitude, lat, lon):
+                            return False, None
                         aircraft = self._aircraft.get(aircraft_id)
                         retval = False
                         new_aircraft = False
@@ -209,6 +221,12 @@ class AircraftMap(object):
                     print("big oops: %s" % line)
                     raise
         return False, None
+
+    def _should_ignore(self, altitude, lat, lon):
+        if altitude < self._minimum_altitude or altitude > self._maximum_altitude:
+            return True
+        return False  # TODO(ggood) implement distance filtering
+
 
     def _purge(self, now=None):
         if now == None:

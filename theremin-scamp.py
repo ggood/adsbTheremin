@@ -18,6 +18,7 @@ import scamp_band
 import util
 
 import scamp
+from scamp_extensions.pitch import Scale
 
 DEFAULT_UPDATE_INTERVAL = 10
 
@@ -39,15 +40,22 @@ class ADSBTheremin(object):
         self._palette_offset = 0
         self._min_altitude = args.min_altitude
         self._max_altitude = args.max_altitude
-        self._map = aircraft_map.AircraftMap(args.lat, args.lon)
+        self._map = aircraft_map.AircraftMap(args.lat, args.lon,
+                                             minimum_altitude=args.min_altitude,
+                                             maximum_altitude=args.max_altitude)
         self._announcer_instrument = None
         self._session = None
         self._band = None
+        self._player_piano = None
+        #self._scale = Scale.lydian(30, cycle=True)[0:40]
+        self._scale = Scale.pentatonic(30, cycle=True)[0:40]
+        #self._scale = Scale.octatonic(30, cycle=True)[0:40]
 
     def init(self):
         # TODO(ggood) init scamp here
         self._session = scamp.Session()
         self._band = scamp_band.ScampBand(self._session)
+        self._player_piano = self._session.new_midi_part("Player Piano", num_channels=1, start_channel=0)
         self._band.start()
         self._map.register_callback("Updater", self)
 
@@ -66,20 +74,33 @@ class ADSBTheremin(object):
         # by the distance to the aircraft.
         midi_note = self.altitude_to_midi_note(aircraft)
         volume = self.distance_to_volume(aircraft)
-        self._band.play_random_percussion(midi_note)
+        self._band.play_random_percussion(midi_note, volume=volume)
+        self._player_piano.play_note(midi_note, volume, 1.0, blocking=False)
+        self._band.play_random_sustained(midi_note, volume=volume, duration=8.0)
 
     def update_aircraft_callback(self, aircraft):
-        # HACK just "announce" even position updates
-        self.new_aircraft_callback(aircraft)
-        print("Position update for aircraft %s" % aircraft.id)
+        # print("Position update for aircraft %s" % aircraft.id)
         # TODO: re-determine the pitch based on the altitude
         # and if it's different, play a note of the new pitch.
+        midi_note = self.altitude_to_midi_note(aircraft)
+        volume = self.distance_to_volume(aircraft)
+        #self._band.play_random_sustained(midi_note, volume=volume, duration=8.0)
 
     def remove_aircraft_callback(self, aircraft):
         print("Removal of aircraft %s" % aircraft.id)
         # TODO remove the instrument from the ensemble
 
     def altitude_to_midi_note(self, aircraft):
+        midi_note_index = util.map_int(aircraft.altitude, self._min_altitude,
+                                       self._max_altitude, 0, len(self._scale) - 1)
+        try:
+            return self._scale[midi_note_index]
+        except Exception as ex:
+            ex2 = ex
+            import pdb; pdb.set_trace()
+            
+
+    def NOTaltitude_to_midi_note(self, aircraft):
         """Given an aircraft, map its altitude to a MIDI note"""
         # TODO(ggood) for now, this is a simple linear map.
         # In the future, get this from some object that produces
@@ -89,17 +110,16 @@ class ADSBTheremin(object):
             return
         midi_note = util.map_int(aircraft.altitude, self._min_altitude,
                                   self._max_altitude, 32, 110)  # XXX(ggood) fix hardcoded
-        print("MIDI note %d" % midi_note)
+        #print("MIDI note %d" % midi_note)
         return midi_note
 
     def distance_to_volume(self, aircraft):
         """Given an aircraft, map its distance to a volume 0.0-1.0.
         Constrain especially large distances to a maximum."""
         distance = aircraft.distance_to(self._mylat, self._mylon)
-        print("XXXX distance %d" % distance)
         volume = util.map_int(
             util.constrain(distance, 0, 50000), 50000, 0, 10, 100) / 100.0
-        print("Volume %f" % volume)
+        #print("Volume %f" % volume)
         return volume
 
     def altitude_in_range(self, aircraft):
