@@ -8,6 +8,7 @@ Music in Python - https://scamp.marcevanstein.com/)
 
 import argparse
 import datetime
+import random
 import socket
 import sys
 import time
@@ -22,8 +23,26 @@ from scamp_extensions.pitch import Scale
 
 DEFAULT_UPDATE_INTERVAL = 10
 
+ALL_SCALES = [
+    Scale.pentatonic(30, cycle=True)[0:40],
+    Scale.lydian(30, cycle=True)[0:40],
+    Scale.octatonic(30, cycle=True)[0:40],
+]
+
+SCALE_ROTATION_INTERVAL = 5.0  # time between scale shifts
+scale = ALL_SCALES[0]
+
+session = scamp.Session(tempo=60)
+
+def scale_update_thread(session):
+    global scale
+    while True:
+        scale = random.choice(ALL_SCALES)
+        print("SCALE NOW %s" % repr(scale))
+        session.wait(SCALE_ROTATION_INTERVAL)
+
 class ADSBTheremin(object):
-    def __init__(self, args):
+    def __init__(self, session, args):
         self._host = args.host
         self._port = args.port
         self._mylat = args.lat
@@ -31,33 +50,31 @@ class ADSBTheremin(object):
         self._midi_channels = range(args.midi_channels)  # 0-based
         self._num_midi_channels = len(self._midi_channels)
         self._polyphony = args.polyphony
-        self._update_interval = args.update_interval
         self._player = None
         self._all_palettes = palettes.MIDI_NOTE_PALETTES
         self._palette_index = 0
         self._palette = self._all_palettes[self._palette_index]
-        self._shift = args.shift
         self._palette_offset = 0
         self._min_altitude = args.min_altitude
         self._max_altitude = args.max_altitude
         self._map = aircraft_map.AircraftMap(args.lat, args.lon,
                                              minimum_altitude=args.min_altitude,
-                                             maximum_altitude=args.max_altitude)
+                                             maximum_altitude=args.max_altitude,
+                                             maximum_distance=args.max_distance)
         self._announcer_instrument = None
-        self._session = None
+        self._session = session
         self._band = None
         self._player_piano = None
-        #self._scale = Scale.lydian(30, cycle=True)[0:40]
-        self._scale = Scale.pentatonic(30, cycle=True)[0:40]
-        #self._scale = Scale.octatonic(30, cycle=True)[0:40]
 
     def init(self):
         # TODO(ggood) init scamp here
         self._session = scamp.Session()
         self._band = scamp_band.ScampBand(self._session)
         self._player_piano = self._session.new_midi_part("Player Piano", num_channels=1, start_channel=0)
+        print("XXXXXXXXXXXXXXX")
         self._band.start()
         self._map.register_callback("Updater", self)
+
 
     def all_notes_off(self):
         pass  # TODO(can scamp do this?)
@@ -75,7 +92,7 @@ class ADSBTheremin(object):
         midi_note = self.altitude_to_midi_note(aircraft)
         volume = self.distance_to_volume(aircraft)
         self._band.play_random_percussion(midi_note, volume=volume)
-        self._player_piano.play_note(midi_note, volume, 1.0, blocking=False)
+        self._player_piano.play_note(midi_note, 1.0, 1.0, blocking=False)
         self._band.play_random_sustained(midi_note, volume=volume, duration=8.0)
 
     def update_aircraft_callback(self, aircraft):
@@ -91,10 +108,11 @@ class ADSBTheremin(object):
         # TODO remove the instrument from the ensemble
 
     def altitude_to_midi_note(self, aircraft):
+        global scale
         midi_note_index = util.map_int(aircraft.altitude, self._min_altitude,
-                                       self._max_altitude, 0, len(self._scale) - 1)
+                                       self._max_altitude, 0, len(scale) - 1)
         try:
-            return self._scale[midi_note_index]
+            return scale[midi_note_index]
         except Exception as ex:
             ex2 = ex
             import pdb; pdb.set_trace()
@@ -177,22 +195,20 @@ def main():
     parser.add_argument("--polyphony", type=int,
                         help="Number of simultaneous notes",
                         default=8)
-    parser.add_argument("--update-interval", type=float,
-                        help="Update interval in seconds",
-                        default=DEFAULT_UPDATE_INTERVAL)
-    parser.add_argument("--shift", type=int,
-                        help="Semitones offset per palette change",
-                        default=0)
     parser.add_argument("--min-altitude", type=int,
                          help="Ignore aircraft lower than this altitude (feet)",
                          default=0)
     parser.add_argument("--max-altitude", type=int,
                          help="Ignore aircraft higher than this altitude (feet)",
                          default=100000)
+    parser.add_argument("--max-distance", type=int,
+                         help="Ignore aircraft farther than this distance (feet)",
+                         default=100000)
 
     args = parser.parse_args()
 
-    adsb_theremin = ADSBTheremin(args)
+    adsb_theremin = ADSBTheremin(session, args)
+    session.fork_unsynchronized(scale_update_thread)
     adsb_theremin.init()
     adsb_theremin.play()
 

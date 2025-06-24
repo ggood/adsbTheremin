@@ -28,6 +28,7 @@ class FileSocketServer(object):
         self._files = args.files
         self._time_factor = args.time_factor
         self._port = args.port
+        self._start_offset = args.start_offset
         self._data = []
         self._clock = SyntheticClock(self._time_factor)
 
@@ -82,6 +83,10 @@ def main():
     parser.add_argument("--time-factor", type=float,
                          help="Scale playback by this factor",
                          default=1)
+    # start-offset not yet implemented
+    parser.add_argument("--start-offset", type=int,
+                        help="Start point (in seconds)",
+                        default=0)
     parser.add_argument("files", nargs="*")
 
     args = parser.parse_args()

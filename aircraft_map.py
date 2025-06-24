@@ -5,6 +5,7 @@ import copy
 import datetime
 import math
 import time
+import util
 
 DEFAULT_PURGE_TIME = 120  # Forget planes not heard from in this many seconds
 DEFAULT_PURGE_INTERVAL = 1  # How often to purge stale aircraft
@@ -50,8 +51,6 @@ class Aircraft(object):
                 self._longitude == other._longitude)
 
     def update(self, altitude, latitude, longitude, now=None):
-#TODO(ggood) the "now" should actually be parsed out of the ADSB
-# message. Then we don't need to pass it in here.
         """Update an aircraft's altitude, latitude, and longitude.
            Returns True if something changed in the aircraft's
            position."""
@@ -61,10 +60,6 @@ class Aircraft(object):
         if (self._altitude != altitude or
                 self._latitude != latitude or
                 self._longitude != longitude):
-            #print("%s lat %s -> %s lon %s -> %s alt %s -> %s" % (
-            #    self._id,
-            #    self._latitude, latitude, self._longitude, longitude,
-            #    self._altitude, altitude))
             self._altitude = altitude
             self._latitude = latitude
             self._longitude = longitude
@@ -72,24 +67,10 @@ class Aircraft(object):
         self._update = now
         return updated
 
-    def distance_to(self, lat, lon):
-        """
-        Compute the distance from the aircraft to the point given by
-        lat and lon. This does not consider the aircraft's altitude. In
-        other words, this computes the distance to the projection
-        of the aircraft on the ground.
-        """
-        d_lat = math.radians(lat - self._latitude)
-        d_lon = math.radians(lon - self._longitude)
-        lat1_rad = math.radians(self._latitude)
-        lat2_rad = math.radians(lat)
-
-        a = (math.sin(d_lat/2) * math.sin(d_lat/2) +
-            math.sin(d_lon/2) * math.sin(d_lon/2) *
-            math.cos(lat1_rad) * math.cos(lat2_rad))
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
-        d = EARTH_RADIUS * c;
-        return d
+    def distance_to(self, observer_latitude, observer_longitude):
+        return util.distance_to(self._latitude, self._longitude,
+                                self._altitude, observer_latitude,
+                                observer_longitude)
 
     def bearing_from(self, lat, lon):
         """
@@ -225,7 +206,12 @@ class AircraftMap(object):
     def _should_ignore(self, altitude, lat, lon):
         if altitude < self._minimum_altitude or altitude > self._maximum_altitude:
             return True
-        return False  # TODO(ggood) implement distance filtering
+            dist = util.distance_to(aircraft.latitude, aircraft.longitude,
+                                    aircraft.altitude, self._latitude,
+                                    self._longitude)
+            if dist > self._maximum_distance:
+                return True
+        return False
 
 
     def _purge(self, now=None):

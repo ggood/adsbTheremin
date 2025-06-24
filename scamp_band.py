@@ -16,7 +16,7 @@ class ScampPlayer:
     def play_note(self, note, volume=1.0, duration=1.0):
         self._instrument.end_all_notes()
         self._instrument.play_note(note, volume, duration, blocking=False)
-        self._session.wait(0.001)  #  XXX why?
+        #self._session.wait(0.001)  #  XXX why?
 
     def end_all_notes(self):
         self._instrument.end_all_notes()
@@ -30,9 +30,9 @@ class ScampBand:
         self._play_count = 0
 
     def start(self):
-        for instrument_name in PITCHED_PERCUSSIVE_INSTRUMENT_NAMES[:4]:
+        for instrument_name in PITCHED_PERCUSSIVE_INSTRUMENT_NAMES:
             self._percussive_instruments.append(ScampPlayer(self._session, instrument_name))
-        for instrument_name in SUSTAIN_INSTRUMENT_NAMES[:4]:
+        for instrument_name in SUSTAIN_INSTRUMENT_NAMES[:10]:
             self._sustain_instruments.append(ScampPlayer(self._session, instrument_name))
 
     def play_all_percussion(self, note):
@@ -50,7 +50,7 @@ class ScampBand:
         inst.play_note(note, volume, duration)
         #self._session.wait(0.1)
         self._play_count += 1
-        print("play_count: %d" % self._play_count)
+        #print("play_count: %d" % self._play_count)
 
     def play_random_sustained(self, note, volume=1.0, duration=1.0):
         inst = random.choice(self._sustain_instruments)
